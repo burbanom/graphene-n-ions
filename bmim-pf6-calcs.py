@@ -128,7 +128,9 @@ if __name__ == '__main__':
     def run_calc( my_dir, box ):
         import subprocess
         eng_string = "ENERGY| Total FORCE_EVAL"
-        os.mkdir(my_dir)
+        if os.path.exists(my_dir):
+            shutil.rmtree(my_dir)
+        os.makedirs(my_dir)
         os.chdir(my_dir)
         calc.create_cell(SUBSYS,box)
         calc.create_coord(SUBSYS,box)
