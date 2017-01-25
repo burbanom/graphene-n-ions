@@ -18,7 +18,7 @@ def parse_commandline_arguments():
     parser.add_argument( '--jobname', '-j', metavar = 'S', type=str, required = True, help='Job name for this run' )
     parser.add_argument( '--neutral', '-n', metavar = 'B', type=bool, required = False, default = False, help='Impose charge of 0 on the system?' )
     parser.add_argument( "--zrange", "-zr", nargs="+", type=float, required = True, help="Starting, end point and step of z translation.")
-    parser.add_argument( '--run_types', '-rt', nargs='+', help='a_w_electrode c_w_electrode aa_w_electrode_f aa_w_electrode_o cc_w_electrode_f cc_w_electrode_o ac_w_electrode_f ac_w_electrode_o aa_wo_electrode_f aa_wo_electrode_o cc_wo_electrode_f cc_wo_electrode_o ac_wo_electrode_f ac_wo_electrode_o', required = True )
+    parser.add_argument( '--run_types', '-rt', nargs='+', help='a_w_electrode c_w_electrode aa_w_electrode_f aa_w_electrode_o aa_w_electrode_f_c aa_w_electrode_o_c cc_w_electrode_f cc_w_electrode_o ac_w_electrode_f ac_w_electrode_o aa_wo_electrode_f aa_wo_electrode_o cc_wo_electrode_f cc_wo_electrode_o ac_wo_electrode_f ac_wo_electrode_o', required = True )
 
     return parser.parse_args()
 
@@ -119,9 +119,15 @@ if __name__ == '__main__':
 
     bmim_pf6_opt.cell = [22.104, 21.27, 100.]
     bmim_pf6_opt.pbc = [True,True,False]
-    pf6 = bmim_pf6_opt[0:7]; bmim = bmim_pf6_opt[7:32]; electrodes = bmim_pf6_opt[32:]
+    pf6 = bmim_pf6_opt[0:7]; bmim = bmim_pf6_opt[7:32]; electrode = bmim_pf6_opt[32:]
     pf6_COM = pf6.get_center_of_mass()
     bmim_COM = bmim.get_center_of_mass()
+    ##### Testing the effect of putting the ions closer to the wall ########
+    pf6_closer = pf6.copy(); bmim_closer = bmim.copy()
+    pf6_closer.translate([0.0,0.0,50.0 - pf6_COM[2]]); pf6_closer.translate([0.0,0.0,-3.5])
+    bmim_closer.translate([0.0,0.0,50.0 - bmim_COM[2]]); bmim_closer.translate([0.0,0.0,-3.5])
+    ########################################################################
+
     shift_vector = pf6_COM - bmim_COM
     z_translate_range = np.arange(zrange[0],zrange[1]+zrange[2],zrange[2])
 
@@ -173,6 +179,15 @@ if __name__ == '__main__':
     pf6_R_o.translate([0.0,- shift_vector[1], 0.0])
     pf6_list_R_o = z_translate( pf6_R_o, z_translate_range )
     ###################################################################
+    pf6_R_c = pf6_closer.copy()
+    pf6_R_c.rotate(v = 'y', a= - np.pi, center='COM' )#; pf6_R.wrap()
+    pf6_R_c.translate([0.0,0.0,2 * 3.5 ])
+    pf6_R_o_c = pf6_R_c.copy()
+    pf6_list_R_c = z_translate( pf6_R_c, z_translate_range )
+    ###################################################################
+    pf6_R_o_c.translate([0.0,- shift_vector[1], 0.0])
+    pf6_list_R_o_c = z_translate( pf6_R_o_c, z_translate_range )
+    ###################################################################
     bmim_R = bmim.copy()
     bmim_R.rotate(v = 'y', a= - np.pi, center='COM' )#; bmim_R.wrap()
     bmim_R.translate([0.0,0.0,2 * abs(bmim_COM[2] - 50.0)])
@@ -187,37 +202,45 @@ if __name__ == '__main__':
     energies = pd.DataFrame(columns=columns, index=my_confs)
     for column in columns:
         for index, conf in enumerate(z_translate_range):
-            # with electrodes
+            # with electrode
             if column == 'a_w_electrode':
-                box = pf6_list_L[index] + electrodes
+                box = pf6_list_L[index] + electrode
                 if not neutral: 
                     FORCE_EVAL.DFT.Charge = -1 
             elif column == 'c_w_electrode':
-                box = bmim_list_L[index] + electrodes
+                box = bmim_list_L[index] + electrode
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = +1 
             elif column == 'aa_w_electrode_f':
-                box = pf6 + pf6_list_R[index] +  electrodes
+                box = pf6 + pf6_list_R[index] +  electrode
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = -2
             elif column == 'aa_w_electrode_o':
-                box = pf6 + pf6_list_R_o[index] +  electrodes
+                box = pf6 + pf6_list_R_o[index] +  electrode
+                if not neutral:
+                    FORCE_EVAL.DFT.Charge = -2
+            elif column == 'aa_w_electrode_f_c':
+                box = pf6_closer + pf6_list_R_c[index] +  electrode
+                if not neutral:
+                    FORCE_EVAL.DFT.Charge = -2
+            elif column == 'aa_w_electrode_o_c':
+                box = pf6_closer + pf6_list_R_o_c[index] +  electrode
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = -2
             elif column == 'cc_w_electrode_f':
-                box = bmim + bmim_list_R[index] +  electrodes
+                box = bmim + bmim_list_R[index] +  electrode
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = +2
             elif column == 'cc_w_electrode_o':
-                box = bmim + bmim_list_R_o[index] +  electrodes
+                box = bmim + bmim_list_R_o[index] +  electrode
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = +2
             elif column == 'ac_w_electrode_f':
-                box = pf6 + bmim_list_R[index] +  electrodes
+                box = pf6 + bmim_list_R[index] +  electrode
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = 0
             elif column == 'ac_w_electrode_o':
-                box = pf6 + bmim_list_R_o[index] +  electrodes
+                box = pf6 + bmim_list_R_o[index] +  electrode
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = 0
             elif column == 'aa_wo_electrode_f':
