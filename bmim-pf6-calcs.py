@@ -17,8 +17,10 @@ def parse_commandline_arguments():
     #parser.add_argument( '--path', '-p', metavar = 'S', type=str, required = True, help='Path/folder for the calculations' )
     parser.add_argument( '--jobname', '-j', metavar = 'S', type=str, required = True, help='Job name for this run' )
     parser.add_argument( '--neutral', '-n', metavar = 'B', type=bool, required = False, default = False, help='Impose charge of 0 on the system?' )
-    parser.add_argument( "--zrange", "-zr", nargs="+", type=float, required = True, help="Starting, end point and step of z translation.")
-    parser.add_argument( '--run_types', '-rt', nargs='+', help='a_w_electrode c_w_electrode aa_w_electrode_f aa_w_electrode_o aa_w_electrode_f_c aa_w_electrode_o_c cc_w_electrode_f cc_w_electrode_o ac_w_electrode_f ac_w_electrode_o aa_wo_electrode_f aa_wo_electrode_o cc_wo_electrode_f cc_wo_electrode_o ac_wo_electrode_f ac_wo_electrode_o', required = True )
+    parser.add_argument( '--threeD', '-d3', metavar = 'B', type=bool, required = False, default = False, help='3D periodic system' )
+    parser.add_argument( "--zrange", "-zr", nargs="+", type=float, required = False, help="Starting, end point and step of z translation.")
+    parser.add_argument( "--yrange", "-yr", nargs="+", type=float, required = False, help="Starting, end point and step of y translation.")
+    parser.add_argument( '--run_types', '-rt', nargs='+', help='a_w_electrode c_w_electrode aa_w_electrode_f aa_w_electrode_o aa_w_electrode_f_c aa_w_electrode_o_c cc_w_electrode_f cc_w_electrode_o ac_w_electrode_f ac_w_electrode_o aa_wo_electrode_f aa_wo_electrode_o cc_wo_electrode_f cc_wo_electrode_o ac_wo_electrode_f ac_wo_electrode_o aa_w_electrode_y aa_wo_electrode_y', required = True )
 
     return parser.parse_args()
 
@@ -32,7 +34,7 @@ def return_value(filename,pattern):
     with open(filename, "r") as fin:
         # memory-map the file, size 0 means whole file
         m = mmap.mmap(fin.fileno(), 0, prot=mmap.PROT_READ)
-                                    # prot argument is *nix only
+        #                             prot argument is *nix only
         i = m.rfind(pattern)
         m.seek(i)             # seek to the location
         line = m.readline()   # read to the end of the line
@@ -46,6 +48,14 @@ def z_translate( molec, z_vect ):
         my_list.append(dummy)
     return my_list
 
+def y_translate( molec, y_vect ):
+    my_list = []
+    for shift in y_vect:
+        dummy = molec.copy()
+        dummy.translate([0.0,float(shift),0.0])
+        my_list.append(dummy)
+    return my_list
+
 if __name__ == '__main__':
 
     args = parse_commandline_arguments()
@@ -53,7 +63,13 @@ if __name__ == '__main__':
     calc = CP2K()
     calc.mpi_n_processes = args.ncores
     run_types = args.run_types
-    zrange = args.zrange
+    if args.zrange is not None:
+        zrange = args.zrange
+    if args.yrange is not None:
+        yrange = args.yrange
+    threeD = args.threeD
+    if threeD:
+        calc.project_name = args.jobname + '-3D'
     neutral = args.neutral
     if neutral:
         calc.project_name = args.jobname + '-neutral'
@@ -129,7 +145,19 @@ if __name__ == '__main__':
     ########################################################################
 
     shift_vector = pf6_COM - bmim_COM
-    z_translate_range = np.arange(zrange[0],zrange[1]+zrange[2],zrange[2])
+
+    try:
+        z_translate_range = np.arange(zrange[0],zrange[1]+zrange[2],zrange[2])
+        energies = pd.DataFrame(columns=run_types, index=z_translate_range)
+        my_range = z_translate_range
+    except NameError:
+        pass
+    try:
+        y_translate_range = np.arange(yrange[0],yrange[1]+yrange[2],yrange[2])
+        energies = pd.DataFrame(columns=run_types, index=y_translate_range)
+        my_range = y_translate_range
+    except NameError:
+        print( 'No ranges were attributed' )
 
     def run_calc( my_dir, box ):
         import subprocess
@@ -167,41 +195,50 @@ if __name__ == '__main__':
         os.chdir(root_dir)
         return result 
 
-    pf6_list_L = z_translate( pf6, - z_translate_range )
-    bmim_list_L = z_translate( bmim, - z_translate_range )
-    ###################################################################
     pf6_R = pf6.copy()
-    pf6_R.rotate(v = 'y', a= - np.pi, center='COM' )#; pf6_R.wrap()
-    pf6_R.translate([0.0,0.0,2 * abs(pf6_COM[2] - 50.0) ])
-    pf6_R_o = pf6_R.copy()
-    pf6_list_R = z_translate( pf6_R, z_translate_range )
-    ###################################################################
-    pf6_R_o.translate([0.0,- shift_vector[1], 0.0])
-    pf6_list_R_o = z_translate( pf6_R_o, z_translate_range )
-    ###################################################################
-    pf6_R_c = pf6_closer.copy()
-    pf6_R_c.rotate(v = 'y', a= - np.pi, center='COM' )#; pf6_R.wrap()
-    pf6_R_c.translate([0.0,0.0,2 * 3.5 ])
-    pf6_R_o_c = pf6_R_c.copy()
-    pf6_list_R_c = z_translate( pf6_R_c, z_translate_range )
-    ###################################################################
-    pf6_R_o_c.translate([0.0,- shift_vector[1], 0.0])
-    pf6_list_R_o_c = z_translate( pf6_R_o_c, z_translate_range )
-    ###################################################################
     bmim_R = bmim.copy()
-    bmim_R.rotate(v = 'y', a= - np.pi, center='COM' )#; bmim_R.wrap()
-    bmim_R.translate([0.0,0.0,2 * abs(bmim_COM[2] - 50.0)])
-    bmim_R_o = bmim_R.copy()
-    bmim_list_R = z_translate( bmim_R, z_translate_range )
+    try:
+        pf6_list_L = z_translate( pf6, - z_translate_range )
+        bmim_list_L = z_translate( bmim, - z_translate_range )
+        ###################################################################
+        pf6_R.rotate(v = 'y', a= - np.pi, center='COM' )#; pf6_R.wrap()
+        pf6_R.translate([0.0,0.0,2 * abs(pf6_COM[2] - 50.0) ])
+        pf6_R_o = pf6_R.copy()
+        pf6_list_R = z_translate( pf6_R, z_translate_range )
+        ###################################################################
+        pf6_R_o.translate([0.0,- shift_vector[1], 0.0])
+        pf6_list_R_o = z_translate( pf6_R_o, z_translate_range )
+        ###################################################################
+        pf6_R_c = pf6_closer.copy()
+        pf6_R_c.rotate(v = 'y', a= - np.pi, center='COM' )#; pf6_R.wrap()
+        pf6_R_c.translate([0.0,0.0,2 * 3.5 ])
+        pf6_R_o_c = pf6_R_c.copy()
+        pf6_list_R_c = z_translate( pf6_R_c, z_translate_range )
+        ###################################################################
+        pf6_R_o_c.translate([0.0,- shift_vector[1], 0.0])
+        pf6_list_R_o_c = z_translate( pf6_R_o_c, z_translate_range )
+        ###################################################################
+        bmim_R.rotate(v = 'y', a= - np.pi, center='COM' )#; bmim_R.wrap()
+        bmim_R.translate([0.0,0.0,2 * abs(bmim_COM[2] - 50.0)])
+        bmim_R_o = bmim_R.copy()
+        bmim_list_R = z_translate( bmim_R, z_translate_range )
+        ###################################################################
+        bmim_R_o.translate([0.0, shift_vector[1], 0.0])
+        bmim_list_R_o = z_translate( bmim_R_o, z_translate_range )
+        ###################################################################
+    except NameError:
+        pass
+    try:
+        pf6_R_y = pf6.copy()
+        pf6_R_y.rotate(v = 'y', a= - np.pi, center='COM' )#; pf6_R.wrap()
+        pf6_R_y.translate([0.0,0.0,2 * abs(pf6_COM[2] - 50.0) ])
+        pf6_list_R_y = y_translate( pf6_R_y, y_translate_range )
+    except NameError:
+        pass
     ###################################################################
-    bmim_R_o.translate([0.0, shift_vector[1], 0.0])
-    bmim_list_R_o = z_translate( bmim_R_o, z_translate_range )
 
-    my_confs = z_translate_range
-    columns = run_types 
-    energies = pd.DataFrame(columns=columns, index=my_confs)
-    for column in columns:
-        for index, conf in enumerate(z_translate_range):
+    for column in run_types:
+        for index, conf in enumerate(my_range):
             # with electrode
             if column == 'a_w_electrode':
                 box = pf6_list_L[index] + electrode
@@ -223,10 +260,34 @@ if __name__ == '__main__':
                 box = pf6_closer + pf6_list_R_c[index] +  electrode
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = -2
+                if threeD:
+                    FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
+                    FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
+                    box.pbc = [True,True,True]
             elif column == 'aa_w_electrode_o_c':
                 box = pf6_closer + pf6_list_R_o_c[index] +  electrode
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = -2
+                if threeD:
+                    FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
+                    FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
+                    box.pbc = [True,True,True]
+            elif column == 'aa_wo_electrode_f_c':
+                box = pf6_closer + pf6_list_R_c[index]
+                if not neutral:
+                    FORCE_EVAL.DFT.Charge = -2
+                if threeD:
+                    FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
+                    FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
+                    box.pbc = [True,True,True]
+            elif column == 'aa_wo_electrode_o_c':
+                box = pf6_closer + pf6_list_R_o_c[index]
+                if not neutral:
+                    FORCE_EVAL.DFT.Charge = -2
+                if threeD:
+                    FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
+                    FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
+                    box.pbc = [True,True,True]
             elif column == 'cc_w_electrode_f':
                 box = bmim + bmim_list_R[index] +  electrode
                 if not neutral:
@@ -267,6 +328,14 @@ if __name__ == '__main__':
                 box = pf6 + bmim_list_R_o[index]
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = 0
+            elif column == 'aa_w_electrode_y':
+                box = pf6 + pf6_list_R_y[index] +  electrode
+                if not neutral:
+                    FORCE_EVAL.DFT.Charge = -2
+            elif column == 'aa_wo_electrode_y':
+                box = pf6 + pf6_list_R_y[index]
+                if not neutral:
+                    FORCE_EVAL.DFT.Charge = -2
 
             dir_name = calc.project_name + '-' + column + str(conf)
             energies[column][conf] = run_calc(dir_name, box)  
