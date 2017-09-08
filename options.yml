@@ -7,10 +7,11 @@ calculation:
     3D: False
     # Perform calcs on large box (42 * 40 angstrom).
     bigbox: True
-    # Starting, end point and step of z translation.
-    zrange: 0.0 10.0 1.0
-    # Starting, end point and step of y translation.
-    yrange: 0.0 10.0 1.0
+    # direction in which to apply the translation, 0 for x, 1 for y 
+    # and 2 for z
+    move_direction: 2
+    # Starting, end point and step of translation.
+    move_range: 0.0 10.0 1.0
     # Initial shift for lhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
     lshift: 0.0
@@ -25,6 +26,7 @@ calculation:
     # box size along z
     zlen: 100.0
     add_electrode: True
+    # which ions to add to the lhs and rhs of the simulation box
     l_ions: pf6
     r_ions: pf6
 XC:
