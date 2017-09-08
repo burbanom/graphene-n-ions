@@ -8,26 +8,13 @@ from pycp2k import CP2K
 import os, re, sys
 import fnmatch
 import shutil
+from options import read_options
 
 def parse_commandline_arguments():
     import argparse
     parser = argparse.ArgumentParser( description = 'cp2k calculator' )
     parser.add_argument( '--ncores', '-nc', metavar = 'N', type=int, required = True, help='set the number of cores to use for this calculation' )
-    parser.add_argument( '--mgrid', '-mg', metavar = 'N', type=int, required = False, default = 280, help='MGRID cutoff' )
-    #parser.add_argument( '--path', '-p', metavar = 'S', type=str, required = True, help='Path/folder for the calculations' )
-    parser.add_argument( '--jobname', '-j', metavar = 'S', type=str, required = True, help='Job name for this run' )
-    parser.add_argument( '--neutral', '-n', metavar = 'B', type=bool, required = False, default = False, help='Impose charge of 0 on the system?' )
-    parser.add_argument( '--threeD', '-d3', metavar = 'B', type=bool, required = False, default = False, help='3D periodic system' )
-    parser.add_argument( '--bigbox', '-bb', metavar = 'B', type=bool, required = False, default = False, help='Perform calcs on large box.' )
-    parser.add_argument( '--diag', '-d', metavar = 'B', type=bool, required = False, default = False, help='Perform diagonalization.' )
-    parser.add_argument( '--vdW', '-vdW', metavar = 'B', type=bool, required = False, default = False, help='Perform PBE-vdW DF.' )
-    parser.add_argument( "--zrange", "-zr", nargs="+", type=float, required = False, help="Starting, end point and step of z translation.")
-    parser.add_argument( "--yrange", "-yr", nargs="+", type=float, required = False, help="Starting, end point and step of y translation.")
-    parser.add_argument( "--lshift", "-ls", metavar="F", type=float, required = False, default=0.0, help="Initial shift for lhs ion from centre of the box")
-    parser.add_argument( "--rshift", "-rs", metavar="F", type=float, required = False, default=0.0, help="Initial shift for rhs ion from centre of the box")
-    parser.add_argument( "--yshift", "-ys", metavar="F", type=float, required = False, default=0.0, help="Shift along y-direction for ions on opposite sides of electrode. By default the ions have their COMs at (0.0,0.0) on the xy-plane. Shifting them will separate them. Use a value of 5A to be close to the optimal separation between PF6 and BMIM")
-    parser.add_argument( "--zlen", "-zl", metavar="F", type=float, required = False, default=100., help="box size along z")
-    parser.add_argument( '--run_types', '-rt', nargs='+', help='a_w_electrode c_w_electrode aa_w_electrode_f aa_w_electrode_o aa_w_electrode_f_c aa_w_electrode_o_c cc_w_electrode_f cc_w_electrode_o ac_w_electrode_f ac_w_electrode_o aa_wo_electrode_f aa_wo_electrode_o cc_wo_electrode_f cc_wo_electrode_o ac_wo_electrode_f ac_wo_electrode_o aa_w_electrode_y aa_wo_electrode_y', required = True )
+    parser.add_argument( '--debug', '-n', metavar = 'B', type=bool, required = False, default = False, help='Do not run calcs, but write input files instead.' )
 
     return parser.parse_args()
 
@@ -123,6 +110,7 @@ def run_calc( my_dir, calc, box ):
 if __name__ == '__main__':
 
     args = parse_commandline_arguments()
+    run_options = read_options('options.yml')
     root_dir = os.getcwd()
     calc = CP2K()
     calc.mpi_n_processes = args.ncores
