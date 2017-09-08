@@ -44,4 +44,4 @@ scf:
     # scf tolerance
     eps_scf: 1.0E-05
     # Perform diagonalization.
-    diagonalize: False
+    diagonalize: True 

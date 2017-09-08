@@ -27,6 +27,8 @@ def clean_files(path,pattern):
 
 def return_value(filename,pattern):
     import mmap
+    if type(pattern) is str:
+        pattern = pattern.encode()
     with open(filename, "r") as fin:
         # memory-map the file, size 0 means whole file
         m = mmap.mmap(fin.fileno(), 0, prot=mmap.PROT_READ)
@@ -37,7 +39,7 @@ def return_value(filename,pattern):
         except ValueError:
             return np.nan
         line = m.readline()   # read to the end of the line
-    return line.split()[-1]
+    return float(line.split()[-1])
 
 def translate_ions( molec, z_vect, direction ):
     my_list = []
@@ -73,35 +75,38 @@ def run_calc( my_dir, calc, box, debug = False ):
     calc.create_coord(SUBSYS,box)
     result = np.nan 
     ranOK = False
-    for scf in ['OT','DIAG']:
-        if ranOK: break
-        if scf == 'OT': 
-            FORCE_EVAL.DFT.SCF.OT.Minimizer = 'CG'
-            FORCE_EVAL.DFT.SCF.OT.Preconditioner = 'FULL_KINETIC' 
-            FORCE_EVAL.DFT.SCF.OT.Linesearch = '2PNT'  
-            FORCE_EVAL.DFT.SCF.Max_scf = 20
-            FORCE_EVAL.DFT.SCF.OUTER_SCF.Max_scf = 16
-            FORCE_EVAL.DFT.SCF.OUTER_SCF.Eps_scf = eps_scf
-        elif scf == 'DIAG':
-            FORCE_EVAL.DFT.SCF.Max_scf = 300
-            FORCE_EVAL.DFT.SCF.DIAGONALIZATION.Algorithm = 'STANDARD'
-            FORCE_EVAL.DFT.SCF.Added_mos = [len(electrode), len(electrode)]
-            FORCE_EVAL.DFT.SCF.SMEAR.Method = 'FERMI_DIRAC'
-            FORCE_EVAL.DFT.SCF.SMEAR.Electronic_temperature = 300.0
-            FORCE_EVAL.DFT.SCF.MIXING.Method = 'BROYDEN_MIXING'
-            FORCE_EVAL.DFT.SCF.MIXING.Alpha = 0.2
-            FORCE_EVAL.DFT.SCF.MIXING.Beta = 1.5
-            FORCE_EVAL.DFT.SCF.MIXING.NBROYDEN = 8
-        try:
-            calc.run()
-            ranOK = True
-            break
-        #except subprocess.CalledProcessError, e:
-        except subprocess.CalledProcessError:
-            ranOK = False 
-            #FORCE_EVAL.DFT.SCF.Scf_guess = 'RESTART'
-            continue
-    result = return_value(calc.output_path,eng_string)
+#    for scf in ['OT','DIAG']:
+#        if ranOK: break
+#        if scf == 'OT': 
+#            FORCE_EVAL.DFT.SCF.OT.Minimizer = 'CG'
+#            FORCE_EVAL.DFT.SCF.OT.Preconditioner = 'FULL_KINETIC' 
+#            FORCE_EVAL.DFT.SCF.OT.Linesearch = '2PNT'  
+#            FORCE_EVAL.DFT.SCF.Max_scf = 15
+#            FORCE_EVAL.DFT.SCF.OUTER_SCF.Max_scf = 20
+#            FORCE_EVAL.DFT.SCF.OUTER_SCF.Eps_scf = eps_scf
+#        elif scf == 'DIAG':
+#            FORCE_EVAL.DFT.SCF.Max_scf = 300
+#            FORCE_EVAL.DFT.SCF.DIAGONALIZATION.Algorithm = 'STANDARD'
+#            FORCE_EVAL.DFT.SCF.Added_mos = [len(electrode), len(electrode)]
+#            FORCE_EVAL.DFT.SCF.SMEAR.Method = 'FERMI_DIRAC'
+#            FORCE_EVAL.DFT.SCF.SMEAR.Electronic_temperature = 300.0
+#            FORCE_EVAL.DFT.SCF.MIXING.Method = 'BROYDEN_MIXING'
+#            FORCE_EVAL.DFT.SCF.MIXING.Alpha = 0.2
+#            FORCE_EVAL.DFT.SCF.MIXING.Beta = 1.5
+#            FORCE_EVAL.DFT.SCF.MIXING.NBroyden = 8
+    try:
+        if debug:
+            calc.write_input_file()
+        calc.run()
+        ranOK = True
+        #break
+    except subprocess.CalledProcessError:
+        ranOK = False 
+        #continue
+    if ranOK:
+        result = return_value(calc.output_path,eng_string)
+    else:
+        result = np.nan
     os.chdir(root_dir)
     return result 
 
@@ -154,11 +159,6 @@ if __name__ == '__main__':
 
     FORCE_EVAL.DFT.MGRID.Cutoff = mgrid
     FORCE_EVAL.DFT.QS.Method = 'GPW'
-    #FORCE_EVAL.DFT.QS.Map_consistent = 'TRUE'
-    #FORCE_EVAL.DFT.QS.Extrapolation = 'ASPC'
-    #FORCE_EVAL.DFT.QS.Extrapolation_order = 3 
-    #FORCE_EVAL.DFT.QS.Eps_default = 1.0E-10
-    #FORCE_EVAL.DFT.QS.Eps_pgf_orb = 1.0E-07
     FORCE_EVAL.DFT.SCF.Scf_guess = 'ATOMIC'
     FORCE_EVAL.DFT.SCF.Eps_scf = eps_scf 
 
@@ -198,6 +198,30 @@ if __name__ == '__main__':
 
     lhs = Atoms(); rhs = Atoms()
     pf6 = bmim_pf6_opt[0:7]; bmim = bmim_pf6_opt[7:32]; electrode = bmim_pf6_opt[32:]
+
+    if diagonalize:
+        FORCE_EVAL.DFT.SCF.Max_scf = 300
+        FORCE_EVAL.DFT.SCF.DIAGONALIZATION.Algorithm = 'STANDARD'
+        FORCE_EVAL.DFT.SCF.Added_mos = [len(electrode), len(electrode)]
+        FORCE_EVAL.DFT.SCF.SMEAR.Method = 'FERMI_DIRAC'
+        FORCE_EVAL.DFT.SCF.SMEAR.Electronic_temperature = 300.0
+        FORCE_EVAL.DFT.SCF.MIXING.Method = 'BROYDEN_MIXING'
+        FORCE_EVAL.DFT.SCF.MIXING.Alpha = 0.2
+        FORCE_EVAL.DFT.SCF.MIXING.Beta = 1.5
+        FORCE_EVAL.DFT.SCF.MIXING.Nbroyden = 8
+    else:
+        FORCE_EVAL.DFT.SCF.OT.Minimizer = 'CG'
+        FORCE_EVAL.DFT.SCF.OT.Preconditioner = 'FULL_KINETIC' 
+        FORCE_EVAL.DFT.SCF.OT.Linesearch = '2PNT'  
+        FORCE_EVAL.DFT.SCF.Max_scf = 15
+        FORCE_EVAL.DFT.SCF.OUTER_SCF.Max_scf = 20
+        FORCE_EVAL.DFT.SCF.OUTER_SCF.Eps_scf = eps_scf
+        #FORCE_EVAL.DFT.QS.Map_consistent = 'TRUE'
+        #FORCE_EVAL.DFT.QS.Extrapolation = 'ASPC'
+        #FORCE_EVAL.DFT.QS.Extrapolation_order = 3 
+        #FORCE_EVAL.DFT.QS.Eps_default = 1.0E-10
+        #FORCE_EVAL.DFT.QS.Eps_pgf_orb = 1.0E-07
+
     for ion in l_ions:
         if ion == 'A':
             lhs.extend(pf6)
@@ -260,7 +284,7 @@ if __name__ == '__main__':
 
         dir_name = calc.project_name + '-' + str(conf)
         energies['energies'][conf] = run_calc(dir_name, calc, box, debug)  
-        energies.to_csv(results_file)
+        energies.to_csv('results.csv')
 
     with open("options.yml") as f0:
         with open("results.csv", "a") as f1:
