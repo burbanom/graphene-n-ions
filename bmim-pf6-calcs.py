@@ -5,7 +5,7 @@ from ase.io import xyz
 import pandas as pd
 import ase
 from pycp2k import CP2K
-import os, re
+import os, re, sys
 import fnmatch
 import shutil
 
@@ -23,8 +23,10 @@ def parse_commandline_arguments():
     parser.add_argument( '--vdW', '-vdW', metavar = 'B', type=bool, required = False, default = False, help='Perform PBE-vdW DF.' )
     parser.add_argument( "--zrange", "-zr", nargs="+", type=float, required = False, help="Starting, end point and step of z translation.")
     parser.add_argument( "--yrange", "-yr", nargs="+", type=float, required = False, help="Starting, end point and step of y translation.")
-    parser.add_argument( "--lshift", "-ls", metavar="F", type=float, required = True, help="Initial shift for lhs ion from centre of the box")
-    parser.add_argument( "--rshift", "-rs", metavar="F", type=float, required = True, help="Initial shift for rhs ion from centre of the box")
+    parser.add_argument( "--lshift", "-ls", metavar="F", type=float, required = False, default=0.0, help="Initial shift for lhs ion from centre of the box")
+    parser.add_argument( "--rshift", "-rs", metavar="F", type=float, required = False, default=0.0, help="Initial shift for rhs ion from centre of the box")
+    parser.add_argument( "--yshift", "-ys", metavar="F", type=float, required = False, default=0.0, help="Shift along y-direction for ions on opposite sides of electrode. By default the ions have their COMs at (0.0,0.0) on the xy-plane. Shifting them will separate them. Use a value of 5A to be close to the optimal separation between PF6 and BMIM")
+    parser.add_argument( "--zlen", "-zl", metavar="F", type=float, required = False, default=100., help="box size along z")
     parser.add_argument( '--run_types', '-rt', nargs='+', help='a_w_electrode c_w_electrode aa_w_electrode_f aa_w_electrode_o aa_w_electrode_f_c aa_w_electrode_o_c cc_w_electrode_f cc_w_electrode_o ac_w_electrode_f ac_w_electrode_o aa_wo_electrode_f aa_wo_electrode_o cc_wo_electrode_f cc_wo_electrode_o ac_wo_electrode_f ac_wo_electrode_o aa_w_electrode_y aa_wo_electrode_y', required = True )
 
     return parser.parse_args()
@@ -65,6 +67,59 @@ def y_translate( molec, y_vect ):
         my_list.append(dummy)
     return my_list
 
+def too_close( mol, cutoff):
+    # decide whether the number of atom distances below cutoff are
+    # equal to the number of atoms.
+    return not np.sum(mol.get_all_distances() < cutoff) == len(mol)
+
+def run_calc( my_dir, calc, box ):
+    # This function will run the calculation intitially using the 
+    # default FULL_KINETIC and 2PNT settings. If these fail, other
+    # linesearches are performed before changing the preconditioner.
+    # ranOK is used to break out of the loops once the calculation has
+    # finished without errors.
+    import subprocess
+    eng_string = "ENERGY| Total FORCE_EVAL"
+    if os.path.exists(my_dir):
+        shutil.rmtree(my_dir)
+    os.makedirs(my_dir)
+    os.chdir(my_dir)
+    calc.create_cell(SUBSYS,box)
+    calc.create_coord(SUBSYS,box)
+    result = np.nan 
+    ranOK = False
+    for scf in ['OT','DIAG']:
+        if ranOK: break
+        if scf == 'OT' 
+            FORCE_EVAL.DFT.SCF.OT.Minimizer = 'CG'
+            FORCE_EVAL.DFT.SCF.OT.Preconditioner = 'FULL_KINETIC' 
+            FORCE_EVAL.DFT.SCF.OT.Linesearch = '2PNT'  
+            FORCE_EVAL.DFT.SCF.Max_scf = 20
+            FORCE_EVAL.DFT.SCF.OUTER_SCF.Max_scf = 16
+            FORCE_EVAL.DFT.SCF.OUTER_SCF.Eps_scf = 1.0E-05
+        elif scf == 'DIAG':
+            FORCE_EVAL.DFT.SCF.Max_scf = 300
+            FORCE_EVAL.DFT.SCF.DIAGONALIZATION.Algorithm = 'STANDARD'
+            FORCE_EVAL.DFT.SCF.Added_mos = [len(electrodes), len(electrodes)]
+            FORCE_EVAL.DFT.SCF.SMEAR.Method = 'FERMI_DIRAC'
+            FORCE_EVAL.DFT.SCF.SMEAR.Electronic_temperature = 300.0
+            FORCE_EVAL.DFT.SCF.MIXING.Method = 'BROYDEN_MIXING'
+            FORCE_EVAL.DFT.SCF.MIXING.Alpha = 0.2
+            FORCE_EVAL.DFT.SCF.MIXING.Beta = 1.5
+            FORCE_EVAL.DFT.SCF.MIXING.NBROYDEN = 8
+        try:
+            calc.run()
+            ranOK = True
+            break
+        #except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError:
+            ranOK = False 
+            #FORCE_EVAL.DFT.SCF.Scf_guess = 'RESTART'
+            continue
+    result = return_value(calc.output_path,eng_string)
+    os.chdir(root_dir)
+    return result 
+
 if __name__ == '__main__':
 
     args = parse_commandline_arguments()
@@ -77,6 +132,7 @@ if __name__ == '__main__':
     neutral = args.neutral
     lshift = args.lshift
     rshift = args.rshift
+    zlen = args.zlen
 
     if args.zrange is not None:
         zrange = args.zrange
@@ -113,11 +169,7 @@ if __name__ == '__main__':
     #FORCE_EVAL.DFT.QS.Eps_pgf_orb = 1.0E-07
     FORCE_EVAL.DFT.SCF.Scf_guess = 'ATOMIC'
     FORCE_EVAL.DFT.SCF.Eps_scf = 1.0E-05
-    FORCE_EVAL.DFT.SCF.Max_scf = 40
-    FORCE_EVAL.DFT.SCF.OUTER_SCF.Max_scf = 8
-    FORCE_EVAL.DFT.SCF.OUTER_SCF.Eps_scf = 1.0E-05
-    FORCE_EVAL.DFT.POISSON.Periodic = 'XY'
-    FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
+
     FORCE_EVAL.DFT.XC.XC_FUNCTIONAL.Section_parameters = "PBE"
     FORCE_EVAL.DFT.Uks = True
 
@@ -147,24 +199,41 @@ if __name__ == '__main__':
 
     if bigbox: 
         bmim_pf6_opt = ase.io.read('/gpfshome/mds/staff/mburbano/bmim-pf6/after-optimization/single-ions/opt_coords_bigbox.xyz')
-        bmim_pf6_opt.cell = [44.20800018, 42.54000092, 100.]
+        bmim_pf6_opt.cell = [44.20800018, 42.54000092, zlen]
     else:
         bmim_pf6_opt = ase.io.read('/gpfshome/mds/staff/mburbano/bmim-pf6/after-optimization/single-ions/opt_coords.xyz')
-        bmim_pf6_opt.cell = [22.104, 21.27, 100.]
+        bmim_pf6_opt.cell = [22.104, 21.27, zlen]
 
-    bmim_pf6_opt.pbc = [True,True,False]
     pf6 = bmim_pf6_opt[0:7]; bmim = bmim_pf6_opt[7:32]; electrode = bmim_pf6_opt[32:]
-    pf6_COM = pf6.get_center_of_mass()
-    bmim_COM = bmim.get_center_of_mass()
+    pf6_L = pf6.copy()
+    bmim_L = bmim.copy()
+    pf6_R = pf6.copy()
+    bmim_R = bmim.copy()
+    shift_vector = pf6.get_center_of_mass() - bmim.get_center_of_mass()
     electrode_COM = electrode.get_center_of_mass()
-    xy_shift = electrode_COM - (bmim+pf6).get_center_of_mass()
-    ##### Testing the effect of putting the ions closer to the wall ########
-    pf6_closer = pf6.copy(); bmim_closer = bmim.copy()
-    pf6_closer.translate([xy_shift[0],xy_shift[1],50.0 - pf6_COM[2]]); pf6_closer.translate([0.0,0.0,-3.5])
-    bmim_closer.translate([xy_shift[0],xy_shift[1],50.0 - bmim_COM[2]]); bmim_closer.translate([0.0,0.0,-3.5])
-    ########################################################################
 
-    shift_vector = pf6_COM - bmim_COM
+    if lshift != 0.0:
+        pf6_L = pf6_L.center(about=electrode.get_center_of_mass())
+        pf6_L = pf6.translate([0.0,0.0,lshift])
+        if too_close(pf6_L+electrode,1.0):
+            print('pf6_L is to close to the electrode')
+            sys.exit()
+
+    bmim_L = bmim.translate([0.0,0.0,lshift])
+    bmim_L = bmim_L.center(about=electrode.get_center_of_mass())
+    if too_close(bmim_L+electrode,1.0):
+        print('bmim_L is to close to the electrode')
+        sys.exit()
+
+    pf6_R = pf6.translate([0.0,0.0,rshift])
+    if too_close(pf6_R+electrode,1.0):
+        print('pf6_R is to close to the electrode')
+        sys.exit()
+
+    bmim_R = bmim.translate([0.0,0.0,rshift])
+    if too_close(bmim_R+electrode,1.0):
+        print('bmim_R is to close to the electrode')
+        sys.exit()
 
     try:
         z_translate_range = np.arange(zrange[0],zrange[1]+zrange[2],zrange[2])
@@ -179,63 +248,11 @@ if __name__ == '__main__':
     except NameError:
         print( 'No ranges were attributed' )
 
-    def run_calc( my_dir, box ):
-        # This function will run the calculation intitially using the 
-        # default FULL_KINETIC and 2PNT settings. If these fail, other
-        # linesearches are performed before changing the preconditioner.
-        # ranOK is used to break out of the loops once the calculation has
-        # finished without errors.
-        import subprocess
-        eng_string = "ENERGY| Total FORCE_EVAL"
-        if os.path.exists(my_dir):
-            shutil.rmtree(my_dir)
-        os.makedirs(my_dir)
-        os.chdir(my_dir)
-        calc.create_cell(SUBSYS,box)
-        calc.create_coord(SUBSYS,box)
-        result = np.nan 
-        ranOK = False
-        #for preconditioner in ['FULL_KINETIC','FULL_ALL','FULL_SINGLE','FULL_SINGLE_INVERSE','FULL_S_INVERSE']:
-        #    if ranOK: break
-        #    for linesearch in ['2PNT','3PNT', 'GOLD']:
-        #        FORCE_EVAL.DFT.SCF.OT.Minimizer = 'CG'
-        #        FORCE_EVAL.DFT.SCF.OT.Preconditioner = preconditioner
-        #        FORCE_EVAL.DFT.SCF.OT.Linesearch = linesearch
-        #        try:
-        #            calc.run()
-        #            ranOK = True
-        #            break
-        #        #except subprocess.CalledProcessError, e:
-        #        except subprocess.CalledProcessError:
-        #            ranOK = False 
-        #            #FORCE_EVAL.DFT.SCF.Scf_guess = 'RESTART'
-        #            continue
-            if ranOK: break
-            for linesearch in ['2PNT','3PNT', 'GOLD']:
-                FORCE_EVAL.DFT.SCF.OT.Minimizer = 'CG'
-                FORCE_EVAL.DFT.SCF.OT.Preconditioner = 'FULL_KINETIC'
-                FORCE_EVAL.DFT.SCF.OT.Linesearch = '2PNT' 
-                try:
-                    calc.run()
-                    ranOK = True
-                    break
-                #except subprocess.CalledProcessError, e:
-                except subprocess.CalledProcessError:
-                    ranOK = False 
-                    #FORCE_EVAL.DFT.SCF.Scf_guess = 'RESTART'
-                    continue
-
-        result = return_value(calc.output_path,eng_string)
-        os.chdir(root_dir)
-        return result 
-
-    pf6_R = pf6.copy()
-    bmim_R = bmim.copy()
     try:
-        pf6_list_L = z_translate( pf6, - z_translate_range )
-        bmim_list_L = z_translate( bmim, - z_translate_range )
+        pf6_list_L = z_translate( pf6_L, - z_translate_range )
+        bmim_list_L = z_translate( bmim_L, - z_translate_range )
         ###################################################################
-        pf6_R.rotate(v = 'y', a= - np.pi, center='COM' )#; pf6_R.wrap()
+        pf6_R.rotate(v = 'y', a= - 2 * np.pi, center='COM' )#; pf6_R.wrap()
         pf6_R.translate([0.0,0.0,2 * abs(pf6_COM[2] - 50.0) ])
         pf6_R_o = pf6_R.copy()
         pf6_list_R = z_translate( pf6_R, z_translate_range )
@@ -294,38 +311,18 @@ if __name__ == '__main__':
                 box = pf6_closer + pf6_list_R_c[index] +  electrode
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = -2
-                if threeD:
-                    FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
-                    FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
-                    #box.cell = [bigbox*22.104,bigbox * 21.27, 100.]
-                    box.pbc = [True,True,True]
             elif column == 'aa_w_electrode_o_c':
                 box = pf6_closer + pf6_list_R_o_c[index] +  electrode
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = -2
-                if threeD:
-                    FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
-                    FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
-                    #box.cell = [bigbox*22.104,bigbox * 21.27, 100.]
-                    box.pbc = [True,True,True]
             elif column == 'aa_wo_electrode_f_c':
                 box = pf6_closer + pf6_list_R_c[index]
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = -2
-                if threeD:
-                    FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
-                    FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
-                    #box.cell = [bigbox*22.104,bigbox * 21.27, 100.]
-                    box.pbc = [True,True,True]
             elif column == 'aa_wo_electrode_o_c':
                 box = pf6_closer + pf6_list_R_o_c[index]
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = -2
-                if threeD:
-                    FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
-                    FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
-                    #box.cell = [bigbox*22.104,bigbox * 21.27, 100.]
-                    box.pbc = [True,True,True]
             elif column == 'cc_w_electrode_f':
                 box = bmim + bmim_list_R[index] +  electrode
                 if not neutral:
@@ -375,6 +372,15 @@ if __name__ == '__main__':
                 if not neutral:
                     FORCE_EVAL.DFT.Charge = -2
 
+            if threeD:
+                FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
+                FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
+                box.pbc = [True,True,True]
+            else:
+                FORCE_EVAL.DFT.POISSON.Periodic = 'XY'
+                FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
+                box.pbc = [True,True,False]
+
             dir_name = calc.project_name + '-' + column + str(conf)
-            energies[column][conf] = run_calc(dir_name, box)  
+            energies[column][conf] = run_calc(dir_name, calc, box)  
             energies.to_csv(root_dir + '/' + calc.project_name+'.csv')
