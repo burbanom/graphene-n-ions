@@ -37,7 +37,7 @@ calculation:
     r_ions: A
 XC:
     # Perform PBE-vdW DF.
-    vdW: False
+    vdW: False 
 scf:
     # MGRID cutoff
     mgrid: 280

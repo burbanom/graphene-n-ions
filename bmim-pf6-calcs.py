@@ -162,7 +162,18 @@ if __name__ == '__main__':
     FORCE_EVAL.DFT.SCF.Scf_guess = 'ATOMIC'
     FORCE_EVAL.DFT.SCF.Eps_scf = eps_scf 
 
-    FORCE_EVAL.DFT.XC.XC_FUNCTIONAL.Section_parameters = "PBE"
+    if not vdW:
+        FORCE_EVAL.DFT.XC.XC_FUNCTIONAL.PBE.Parametrization = 'ORIG'
+    else:
+        FORCE_EVAL.DFT.XC.XC_FUNCTIONAL.PBE.Parametrization = 'revPBE'
+        FORCE_EVAL.DFT.XC.XC_FUNCTIONAL.PBE.Scale_c = 0.0
+        FORCE_EVAL.DFT.XC.XC_FUNCTIONAL.VWN.Scale_c = 1.0
+        FORCE_EVAL.DFT.XC.VDW_POTENTIAL.Dispersion_functional = 'NON_LOCAL'
+        NON_LOCAL = FORCE_EVAL.DFT.XC.VDW_POTENTIAL.NON_LOCAL_add()
+        NON_LOCAL.Type = 'DRSLL'
+        NON_LOCAL.Kernel_file_name = 'vdW_kernel_table.dat'
+        NON_LOCAL.Cutoff =  20.0 
+
     FORCE_EVAL.DFT.Uks = True
 
     KIND = SUBSYS.KIND_add("H")
