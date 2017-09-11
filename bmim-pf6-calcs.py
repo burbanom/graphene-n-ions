@@ -118,7 +118,7 @@ if __name__ == '__main__':
     # calculation parameters
     jobname = run_options['calculation']['jobname']
     coords = run_options['calculation']['coords']
-    threeD = run_options['calculation']['3D']
+    periodicity = run_options['calculation']['periodicity']
     bigbox = run_options['calculation']['bigbox']
     charge = run_options['calculation']['charge']
     lshift = run_options['calculation']['lshift']
@@ -284,14 +284,18 @@ if __name__ == '__main__':
         if add_electrode:
             box.extend(electrode)
         FORCE_EVAL.DFT.Charge = charge
-        if threeD:
+        if periodicity == 3:
             FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
             FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
             box.pbc = [True,True,True]
-        else:
+        elif periodicity == 2:
             FORCE_EVAL.DFT.POISSON.Periodic = 'XY'
             FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
             box.pbc = [True,True,False]
+        elif periodicity == 0:
+            FORCE_EVAL.DFT.POISSON.Periodic = 'NONE'
+            FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
+            box.pbc = [False,False,False]
 
         dir_name = calc.project_name + '-' + str(conf)
         energies['energies'][conf] = run_calc(dir_name, calc, box, debug)  

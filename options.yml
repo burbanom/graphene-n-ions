@@ -5,8 +5,8 @@ calculation:
     coords: /gpfs1l/gpfshome/mds/staff/mburbano/Source/bmim-pf6
     # Impose charge of 0 on the system?
     charge: 0
-    # 3D periodic system
-    3D: True 
+    # periodicity of system system: 0, 2 or 3
+    periodicity: 0 
     # Perform calcs on large box (42 * 40 angstrom).
     bigbox: True
     # direction in which to apply the translation, 0 for x, 1 for y 
