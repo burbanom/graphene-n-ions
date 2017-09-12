@@ -2,27 +2,27 @@
 calculation:
     jobname: eng
     # xyz files location
-    coords: /gpfs1l/gpfshome/mds/staff/mburbano/Source/bmim-pf6
+    coords: /home/mburbano/Source/graphene-n-ions
     # Impose charge of 0 on the system?
-    charge: 0
-    # periodicity of system system: 0, 2 or 3
-    periodicity: 0 
+    charge: -1
+    # 3D periodic system
+    periodicity: 0
     # Perform calcs on large box (42 * 40 angstrom).
     bigbox: True
     # direction in which to apply the translation, 0 for x, 1 for y 
     # and 2 for z
     move_direction: 2
     # Starting, end point and step of translation.
-    move_range: 
+    move_range:
         begin: 0.0
-        end: 10.0
+        end: 0.0
         step: 1.0
     # Initial shift for lhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
-    lshift: -0.0
+    lshift: 0.00000001 
     # Initial shift for rhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
-    rshift: 0.000
+    rshift: 3.5019672082
     # Shift along y-direction for ions on opposite sides of electrode. 
     # By default the ions have their COMs at (0.0,0.0) on the xy-plane. 
     # Shifting them will separate them. Use a value of 5A to be close 
@@ -30,18 +30,19 @@ calculation:
     yshift: 0.0
     # box size along z
     zlen: 100.0
-    add_electrode: True
+    add_electrode: False
     # which ions to add to the lhs and rhs of the simulation box
     # A or C on either side or A and C
-    l_ions: A 
-    r_ions: A
+    l_ions: A
+    r_ions: N
 XC:
     # Perform PBE-vdW DF.
-    vdW: False 
+    vdW: True 
 scf:
     # MGRID cutoff
     mgrid: 280
     # scf tolerance
     eps_scf: 1.0E-05
     # Perform diagonalization.
-    diagonalize: True 
+    diagonalize: False
+

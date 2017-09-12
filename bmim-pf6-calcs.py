@@ -256,14 +256,14 @@ if __name__ == '__main__':
     if lshift != 0.0:
         lhs.center(axis=2,about=electrode.get_center_of_mass())
         lhs.translate([0.0,0.0,lshift])
-        if too_close(lhs+electrode,1.0):
+        if add_electrode and too_close(lhs+electrode,1.0):
             print('LHS ions are too close to the electrode')
             sys.exit()
 
     if rshift != 0.0:
         rhs.center(axis=2,about=electrode.get_center_of_mass())
         rhs.translate([0.0,0.0,rshift])
-        if too_close(rhs+electrode,1.0):
+        if add_electrode and too_close(rhs+electrode,1.0):
             print('RHS ions are too close to the electrode')
             sys.exit()
 
