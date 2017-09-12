@@ -139,6 +139,11 @@ if __name__ == '__main__':
     mgrid = run_options['scf']['mgrid']
     eps_scf = run_options['scf']['eps_scf']
     diagonalize = run_options['scf']['diagonalize']
+    # basis set
+    if 'kind' in run_options.keys() and 'basis' in run_options['kind'].keys():
+        basis = run_options['kind']['basis']
+    else:
+        basis = 'DZVP-MOLOPT-GTH'
 
     root_dir = os.getcwd()
     calc = CP2K()
@@ -177,23 +182,23 @@ if __name__ == '__main__':
     FORCE_EVAL.DFT.Uks = True
 
     KIND = SUBSYS.KIND_add("H")
-    KIND.Basis_set = 'DZVP-MOLOPT-GTH'
+    KIND.Basis_set = basis 
     KIND.Potential = 'GTH-PBE'
 
     KIND = SUBSYS.KIND_add("C")
-    KIND.Basis_set = 'DZVP-MOLOPT-GTH'
+    KIND.Basis_set = basis 
     KIND.Potential = 'GTH-PBE'
 
     KIND = SUBSYS.KIND_add("N")
-    KIND.Basis_set = 'DZVP-MOLOPT-GTH'
+    KIND.Basis_set = basis 
     KIND.Potential = 'GTH-PBE'
 
     KIND = SUBSYS.KIND_add("P")
-    KIND.Basis_set = 'DZVP-MOLOPT-GTH'
+    KIND.Basis_set = basis 
     KIND.Potential = 'GTH-PBE'
 
     KIND = SUBSYS.KIND_add("F")
-    KIND.Basis_set = 'DZVP-MOLOPT-GTH'
+    KIND.Basis_set = basis 
     KIND.Potential = 'GTH-PBE'
 
     GLOBAL.Run_type = 'ENERGY'
