@@ -19,18 +19,23 @@ calculation:
         step: 1.0
     # Initial shift for lhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
-    lshift: -3.5019672082
+    #lshift: -3.5019672082
+    lshift: 0.0 
     # Initial shift for rhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
-    rshift: 3.5019672082
+    rshift: 0.0 
     # Shift along y-direction for ions on opposite sides of electrode. 
     # By default the ions have their COMs at (0.0,0.0) on the xy-plane. 
     # Shifting them will separate them. Use a value of 5A to be close 
     # to the optimal separation between PF6 and BMIM
     yshift: 0.0
+    r_rotate:
+        axis: z
+        degrees: 160.0
     # box size along z
     zlen: 100.0
     add_electrode: True
+    pairs: 10
     # which ions to add to the lhs and rhs of the simulation box
     # A or C on either side or A and C
     l_ions: A C

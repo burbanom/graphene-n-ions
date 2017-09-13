@@ -133,6 +133,10 @@ if __name__ == '__main__':
         degrees = 0.0
     zlen = run_options['calculation']['zlen']
     add_electrode = run_options['calculation']['add_electrode']
+    if 'pairs' in run_options['calculation'].keys():
+        pairs = run_options['calculation']['pairs']
+    else:
+        pairs = 0
     l_ions = run_options['calculation']['l_ions']
     r_ions = run_options['calculation']['r_ions']
     move_range_b = run_options['calculation']['move_range']['begin']
@@ -246,17 +250,28 @@ if __name__ == '__main__':
         #FORCE_EVAL.DFT.QS.Eps_default = 1.0E-10
         #FORCE_EVAL.DFT.QS.Eps_pgf_orb = 1.0E-07
 
-    for ion in l_ions:
-        if ion == 'A':
-            lhs.extend(pf6)
-        elif ion == 'C':
-            lhs.extend(bmim)
+    if not pairs:
+        for ion in l_ions:
+            if ion == 'A':
+                lhs.extend(pf6)
+            elif ion == 'C':
+                lhs.extend(bmim)
 
-    for ion in r_ions:
-        if ion == 'A':
-            rhs.extend(pf6)
-        elif ion == 'C':
-            rhs.extend(bmim)
+        for ion in r_ions:
+            if ion == 'A':
+                rhs.extend(pf6)
+            elif ion == 'C':
+                rhs.extend(bmim)
+
+    if pairs >= 1:
+        lhs.extend(pf6)
+        lhs.extend(bmim)
+        rhs.extend(pf6)
+        rhs.extend(bmim)
+        list_of_l_pairs = []
+        for pair in range(pairs):
+            list_of_l_pairs.append(lhs)
+        print(list_of_l_pairs)
 
     lhs.set_cell(bmim_pf6_opt.cell)
     rhs.set_cell(bmim_pf6_opt.cell)
