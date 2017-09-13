@@ -2,11 +2,11 @@
 calculation:
     jobname: eng
     # xyz files location
-    coords: /home/mburbano/Source/graphene-n-ions
+    coords: /home/burbanom/Dropbox/Work/Source/graphene-n-ions
     # Impose charge of 0 on the system?
-    charge: -1
+    charge: 0
     # 3D periodic system
-    periodicity: 0
+    periodicity: 2
     # Perform calcs on large box (42 * 40 angstrom).
     bigbox: True
     # direction in which to apply the translation, 0 for x, 1 for y 
@@ -28,18 +28,16 @@ calculation:
     # Shifting them will separate them. Use a value of 5A to be close 
     # to the optimal separation between PF6 and BMIM
     yshift: 0.0
-    # rotate scpecies on the lhs by this many degrees
-    lrotate: 180.0
     # box size along z
     zlen: 100.0
-    add_electrode: False
+    add_electrode: True
     # which ions to add to the lhs and rhs of the simulation box
     # A or C on either side or A and C
-    l_ions: A C A C
-    r_ions: A C A C 
+    l_ions: A C
+    r_ions: A C
 XC:
     # Perform PBE-vdW DF.
-    vdW: True 
+    vdW: True
 scf:
     # MGRID cutoff
     mgrid: 280
@@ -47,6 +45,3 @@ scf:
     eps_scf: 1.0E-05
     # Perform diagonalization.
     diagonalize: False
-
-kind:
-    basis: TZVP-MOLOPT-GTH

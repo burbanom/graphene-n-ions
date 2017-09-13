@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
 from scipy import linalg
-from ase.io import xyz
+from ase.io import xyz, write
 from ase import Atoms
 import pandas as pd
 import ase
@@ -97,6 +97,8 @@ def run_calc( my_dir, calc, box, debug = False ):
     try:
         if debug:
             calc.write_input_file()
+            box.write('positions.vasp')
+            box.write('positions.xyz')
         calc.run()
         ranOK = True
         #break
@@ -258,7 +260,7 @@ if __name__ == '__main__':
 
     lhs.set_cell(bmim_pf6_opt.cell)
     rhs.set_cell(bmim_pf6_opt.cell)
-    rhs.rotate(v = 'y' , a = 180.0, center = 'COM' )
+    #rhs.rotate(v = 'y' , a = 180.0, center = 'COM' )
     rhs.translate([0.0,0.0,2*abs(zlen/2.0-rhs.get_center_of_mass()[2])])
 
     lhs.center(axis=(0,1))
@@ -268,6 +270,7 @@ if __name__ == '__main__':
         lhs.center(axis=2,about=electrode.get_center_of_mass())
         lhs.translate([0.0,0.0,lshift])
         if add_electrode and too_close(lhs+electrode,1.0):
+            (lhs+electrode).write('lhs_positions.vasp')
             print('LHS ions are too close to the electrode')
             sys.exit()
 
@@ -275,6 +278,7 @@ if __name__ == '__main__':
         rhs.center(axis=2,about=electrode.get_center_of_mass())
         rhs.translate([0.0,0.0,rshift])
         if add_electrode and too_close(rhs+electrode,1.0):
+            (rhs+electrode).write('rhs_positions.vasp')
             print('RHS ions are too close to the electrode')
             sys.exit()
 
