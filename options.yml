@@ -28,6 +28,8 @@ calculation:
     # Shifting them will separate them. Use a value of 5A to be close 
     # to the optimal separation between PF6 and BMIM
     yshift: 0.0
+    # rotate scpecies on the lhs by this many degrees
+    lrotate: 180.0
     # box size along z
     zlen: 100.0
     add_electrode: False

@@ -124,6 +124,11 @@ if __name__ == '__main__':
     lshift = run_options['calculation']['lshift']
     rshift = run_options['calculation']['rshift']
     yshift = run_options['calculation']['yshift']
+    if 'r_rotate' in run_options['calculation'].keys():
+        degrees = run_options['calculation']['r_rotate']['degrees']
+        axis = run_options['calculation']['r_rotate']['axis']
+    else:
+        degrees = 0.0
     zlen = run_options['calculation']['zlen']
     add_electrode = run_options['calculation']['add_electrode']
     l_ions = run_options['calculation']['l_ions']
@@ -252,7 +257,7 @@ if __name__ == '__main__':
 
     lhs.set_cell(bmim_pf6_opt.cell)
     rhs.set_cell(bmim_pf6_opt.cell)
-    rhs.rotate(v = 'y', a= - 2 * np.pi, center='COM' )
+    rhs.rotate(v = 'y' , a = 180.0, center = 'COM' )
     rhs.translate([0.0,0.0,2*abs(zlen/2.0-rhs.get_center_of_mass()[2])])
 
     lhs.center(axis=(0,1))
@@ -275,6 +280,9 @@ if __name__ == '__main__':
     if abs(yshift) >= bmim_pf6_opt.get_cell_lengths_and_angles()[2] / 2.0:
         print('yshift is too large for this box size')
         sys.exit()
+
+    if degrees != 0.0:
+        rhs.rotate(v = axis, a= degrees , center='COM' )
 
     lhs.translate([0.0,yshift/2.0,0.0])
     rhs.translate([0.0,-yshift/2.0,0.0])
