@@ -19,7 +19,7 @@ calculation:
         step: 1.0
     # Initial shift for lhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
-    lshift: 0.00000001 
+    lshift: -3.5019672082
     # Initial shift for rhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
     rshift: 3.5019672082
@@ -35,8 +35,8 @@ calculation:
     add_electrode: False
     # which ions to add to the lhs and rhs of the simulation box
     # A or C on either side or A and C
-    l_ions: A
-    r_ions: N
+    l_ions: A C A C
+    r_ions: A C A C 
 XC:
     # Perform PBE-vdW DF.
     vdW: True 

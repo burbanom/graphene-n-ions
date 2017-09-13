@@ -219,6 +219,7 @@ if __name__ == '__main__':
 
     lhs = Atoms(); rhs = Atoms()
     pf6 = bmim_pf6_opt[0:7]; bmim = bmim_pf6_opt[7:32]; electrode = bmim_pf6_opt[32:]
+    eq_dist_ion_pair = np.linalg.norm(bmim.get_center_of_mass() - pf6.get_center_of_mass())
 
     if diagonalize:
         FORCE_EVAL.DFT.SCF.Max_scf = 300
