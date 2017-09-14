@@ -173,12 +173,12 @@ def create_configurations( lattice, angle ):
                     conf.extend(item)
             elif len(subset) == len(lattice_copy):
                 for item in lattice_copy:
-                    item.rotate(v='z',a=np.pi, center='COM')
+                    item.rotate(v='z',a= angle * (np.pi/180.), center='COM')
                     conf.extend(item)
                     name = len(lattice) * ['C']
             else:
                 for index in subset:
-                    lattice_copy[index-1].rotate(v='z',a=np.pi, center='COM')
+                    lattice_copy[index-1].rotate(v='z',a=angle * (np.pi/180.), center='COM')
                     name[index] = 'C'
                 for item in lattice_copy:
                     conf.extend(item)
@@ -217,8 +217,10 @@ if __name__ == '__main__':
         separation = 0. 
         vector = None
         rotation_angle = 0.0
-    l_ions = run_options['calculation']['l_ions']
-    r_ions = run_options['calculation']['r_ions']
+    if 'l_ions' in run_options['calculation'].keys():
+        l_ions = run_options['calculation']['l_ions']
+    if 'r_ions' in run_options['calculation'].keys():
+        r_ions = run_options['calculation']['r_ions']
     move_range_b = run_options['calculation']['move_range']['begin']
     move_range_e = run_options['calculation']['move_range']['end']
     move_range_s = run_options['calculation']['move_range']['step']
