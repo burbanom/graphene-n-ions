@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
 from scipy import linalg
-from ase.io import xyz, write
+from ase.io import read, write
 from ase import Atoms
 import pandas as pd
 import ase
@@ -10,6 +10,8 @@ import os, re, sys
 import fnmatch
 import shutil
 from options import read_options
+from itertools import combinations
+from copy import deepcopy
 
 def parse_commandline_arguments():
     import argparse
@@ -112,6 +114,78 @@ def run_calc( my_dir, calc, box, debug = False ):
     os.chdir(root_dir)
     return result 
 
+def build_lattice( points, motif, lattice_constant ):
+    "A function for creating very simple lattices"
+    motifs_list = []
+    # A lattice with two points
+    if points == 2:
+        for point in range(points):
+            this_motif = motif.copy()
+            if point == 0:
+                motifs_list.append(this_motif)
+            else:
+                this_motif.translate([lattice_constant,0.0,0.0])
+                motifs_list.append(this_motif)
+    # A lattice with three points
+    if points == 3:
+        for point in range(points):
+            this_motif = motif.copy()
+            if point == 0:
+                motifs_list.append(this_motif)
+            elif point == 1:
+                this_motif.translate([-lattice_constant/2.0,-lattice_constant*np.sin(np.pi/3.0),0.0])
+                motifs_list.append(this_motif)
+            else:
+                this_motif.translate([lattice_constant/2.0,-lattice_constant*np.sin(np.pi/3.0),0.0])
+                motifs_list.append(this_motif)
+    if points == 4:
+        for point in range(points):
+            this_motif = motif.copy()
+            if point == 0:
+                motifs_list.append(this_motif)
+            elif point == 1:
+                this_motif.translate([lattice_constant,0.0,0.0])
+                motifs_list.append(this_motif)
+            elif point == 2:
+                this_motif.translate([0.0,-lattice_constant,0.0])
+                motifs_list.append(this_motif)
+            elif point == 3:
+                this_motif.translate([lattice_constant,-lattice_constant,0.0])
+                motifs_list.append(this_motif)
+    return motifs_list
+
+def create_configurations( lattice, angle ):
+    """A function for generating all possible combinations of a list
+    of configurations. The result is a dictionary with the label 'A'
+    being used to mark positions on the lattice where no rotation has
+    been applied and the label 'C' to indicate that this point has undergone
+    a rotation of 180.0 about the z-axis.
+    """
+    les_confs = []
+    conf_names = []
+    for L in range(len(lattice)+1):
+        for subset in combinations(range(len(lattice)), L):
+            name = len(lattice) * ['A']
+            lattice_copy = deepcopy(lattice)
+            conf = Atoms()
+            if len(subset) == 0:       
+                for item in lattice_copy:
+                    conf.extend(item)
+            elif len(subset) == len(lattice_copy):
+                for item in lattice_copy:
+                    item.rotate(v='z',a=np.pi, center='COM')
+                    conf.extend(item)
+                    name = len(lattice) * ['C']
+            else:
+                for index in subset:
+                    lattice_copy[index-1].rotate(v='z',a=np.pi, center='COM')
+                    name[index] = 'C'
+                for item in lattice_copy:
+                    conf.extend(item)
+            les_confs.append(conf)
+            conf_names.append(''.join(name))
+    return dict(zip(conf_names,les_confs))
+
 if __name__ == '__main__':
 
     args = parse_commandline_arguments()
@@ -134,9 +208,15 @@ if __name__ == '__main__':
     zlen = run_options['calculation']['zlen']
     add_electrode = run_options['calculation']['add_electrode']
     if 'pairs' in run_options['calculation'].keys():
-        pairs = run_options['calculation']['pairs']
+        pairs = run_options['calculation']['pairs']['number']
+        separation = run_options['calculation']['pairs']['separation']
+        vector = run_options['calculation']['pairs']['vector']
+        rotation_angle = run_options['calculation']['pairs']['rotation_angle']
     else:
         pairs = 0
+        separation = 0. 
+        vector = None
+        rotation_angle = 0.0
     l_ions = run_options['calculation']['l_ions']
     r_ions = run_options['calculation']['r_ions']
     move_range_b = run_options['calculation']['move_range']['begin']
@@ -217,15 +297,20 @@ if __name__ == '__main__':
 
 
     if bigbox: 
-        bmim_pf6_opt = ase.io.read(coords+'/opt_coords_bigbox.xyz')
+        bmim_pf6_opt = read(coords+'/opt_coords_bigbox.xyz')
         bmim_pf6_opt.cell = [44.20800018, 42.54000092, zlen]
     else:
-        bmim_pf6_opt = ase.io.read(coords+'/opt_coords.xyz')
+        bmim_pf6_opt = read(coords+'/opt_coords.xyz')
         bmim_pf6_opt.cell = [22.104, 21.27, zlen]
 
-    lhs = Atoms(); rhs = Atoms()
     pf6 = bmim_pf6_opt[0:7]; bmim = bmim_pf6_opt[7:32]; electrode = bmim_pf6_opt[32:]
-    eq_dist_ion_pair = np.linalg.norm(bmim.get_center_of_mass() - pf6.get_center_of_mass())
+    pair = pf6+bmim
+    z_shift = abs(electrode.get_center_of_mass()-pair.get_center_of_mass())[2]
+    electrode.center()
+    pair.center()
+    pair.translate([0.0,0.0,-z_shift])
+    pf6 = pair[0:7]; bmim = pair[7:32]
+    eq_dist_ion_pair = linalg.norm(bmim.get_center_of_mass() - pf6.get_center_of_mass())
 
     if diagonalize:
         FORCE_EVAL.DFT.SCF.Max_scf = 300
@@ -250,6 +335,7 @@ if __name__ == '__main__':
         #FORCE_EVAL.DFT.QS.Eps_default = 1.0E-10
         #FORCE_EVAL.DFT.QS.Eps_pgf_orb = 1.0E-07
 
+    lhs = Atoms(); rhs = Atoms()
     if not pairs:
         for ion in l_ions:
             if ion == 'A':
@@ -264,75 +350,73 @@ if __name__ == '__main__':
                 rhs.extend(bmim)
 
     if pairs >= 1:
-        lhs.extend(pf6)
-        lhs.extend(bmim)
-        rhs.extend(pf6)
-        rhs.extend(bmim)
-        list_of_l_pairs = []
-        for pair in range(pairs):
-            list_of_l_pairs.append(lhs)
-        print(list_of_l_pairs)
+        lattice = build_lattice(pairs, motif=pair,lattice_constant=separation)
+        l_confs = create_configurations(lattice,rotation_angle)
+        r_confs = deepcopy(l_confs)
+        ######
+        for key in l_confs.keys():
+            l_confs[key].set_cell(bmim_pf6_opt.cell)
+            l_confs[key].center(axis=(0,1))
+            if lshift != 0.0:
+                l_confs[key].center(axis=2)
+                l_confs[key].translate([0.0,0.0,lshift])
+                if add_electrode and too_close(l_confs[key]+electrode,1.0):
+                    (l_confs[key]+electrode).write('lhs_'+key+'_positions.vasp')
+                    print('LHS ions are too close to the electrode')
+                    sys.exit()
+        for key in r_confs.keys():
+            r_confs[key].set_cell(bmim_pf6_opt.cell)
+            r_confs[key].center(axis=(0,1))
+            r_confs[key].translate([0.0,0.0,2*z_shift])
+            if rshift != 0.0:
+                r_confs[key].center(axis=2)
+                r_confs[key].translate([0.0,0.0,rshift])
+                if add_electrode and too_close(r_confs[key]+electrode,1.0):
+                    (r_confs[key]+electrode).write('rhs_'+key+'_positions.vasp')
+                    print('RHS ions are too close to the electrode')
+                    sys.exit()
 
-    lhs.set_cell(bmim_pf6_opt.cell)
-    rhs.set_cell(bmim_pf6_opt.cell)
-    #rhs.rotate(v = 'y' , a = 180.0, center = 'COM' )
-    rhs.translate([0.0,0.0,2*abs(zlen/2.0-rhs.get_center_of_mass()[2])])
+#    lhs.set_cell(bmim_pf6_opt.cell)
+#    rhs.set_cell(bmim_pf6_opt.cell)
+#
+#
+#    if abs(yshift) >= bmim_pf6_opt.get_cell_lengths_and_angles()[2] / 2.0:
+#        print('yshift is too large for this box size')
+#        sys.exit()
+#
+#    if degrees != 0.0:
+#        rhs.rotate(v = axis, a= degrees * (np.pi/180.0) , center='COM' )
+#
+#    lhs.translate([0.0,yshift/2.0,0.0])
+#    rhs.translate([0.0,-yshift/2.0,0.0])
+#
+#    translate_range = np.arange(move_range_b,move_range_e+move_range_s,move_range_s)
+#    rhs_list = translate_ions( rhs, translate_range, move_direction )
 
-    lhs.center(axis=(0,1))
-    rhs.center(axis=(0,1))
+    energies = pd.DataFrame(columns=l_confs.keys(),index=r_confs.keys())
 
-    if lshift != 0.0:
-        lhs.center(axis=2,about=electrode.get_center_of_mass())
-        lhs.translate([0.0,0.0,lshift])
-        if add_electrode and too_close(lhs+electrode,1.0):
-            (lhs+electrode).write('lhs_positions.vasp')
-            print('LHS ions are too close to the electrode')
-            sys.exit()
+    for  l_key in l_confs.keys():
+        for  r_key in r_confs.keys():
+            box = l_confs[l_key] + r_confs[r_key] 
+            if add_electrode:
+                box.extend(electrode)
+            FORCE_EVAL.DFT.Charge = charge
+            if periodicity == 3:
+                FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
+                FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
+                box.pbc = [True,True,True]
+            elif periodicity == 2:
+                FORCE_EVAL.DFT.POISSON.Periodic = 'XY'
+                FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
+                box.pbc = [True,True,False]
+            elif periodicity == 0:
+                FORCE_EVAL.DFT.POISSON.Periodic = 'NONE'
+                FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
+                box.pbc = [False,False,False]
 
-    if rshift != 0.0:
-        rhs.center(axis=2,about=electrode.get_center_of_mass())
-        rhs.translate([0.0,0.0,rshift])
-        if add_electrode and too_close(rhs+electrode,1.0):
-            (rhs+electrode).write('rhs_positions.vasp')
-            print('RHS ions are too close to the electrode')
-            sys.exit()
-
-    if abs(yshift) >= bmim_pf6_opt.get_cell_lengths_and_angles()[2] / 2.0:
-        print('yshift is too large for this box size')
-        sys.exit()
-
-    if degrees != 0.0:
-        rhs.rotate(v = axis, a= degrees , center='COM' )
-
-    lhs.translate([0.0,yshift/2.0,0.0])
-    rhs.translate([0.0,-yshift/2.0,0.0])
-
-    translate_range = np.arange(move_range_b,move_range_e+move_range_s,move_range_s)
-    rhs_list = translate_ions( rhs, translate_range, move_direction )
-
-    energies = pd.DataFrame(columns=['energies'], index=translate_range)
-
-    for index, conf in enumerate(translate_range):
-        box = lhs + rhs_list[index]
-        if add_electrode:
-            box.extend(electrode)
-        FORCE_EVAL.DFT.Charge = charge
-        if periodicity == 3:
-            FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
-            FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
-            box.pbc = [True,True,True]
-        elif periodicity == 2:
-            FORCE_EVAL.DFT.POISSON.Periodic = 'XY'
-            FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
-            box.pbc = [True,True,False]
-        elif periodicity == 0:
-            FORCE_EVAL.DFT.POISSON.Periodic = 'NONE'
-            FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
-            box.pbc = [False,False,False]
-
-        dir_name = calc.project_name + '-' + str(conf)
-        energies['energies'][conf] = run_calc(dir_name, calc, box, debug)  
-        energies.to_csv('results.csv')
+            dir_name = calc.project_name + '-' + 'L-' + str(l_key) + '-R-' + str(r_key)
+            energies[l_key][r_key] = run_calc(dir_name, calc, box, debug)  
+            energies.to_csv('results.csv')
 
     with open("options.yml") as f0:
         with open("results.csv", "a") as f1:

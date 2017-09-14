@@ -2,7 +2,7 @@
 calculation:
     jobname: eng
     # xyz files location
-    coords: /home/burbanom/Dropbox/Work/Source/graphene-n-ions
+    coords: ./ 
     # Impose charge of 0 on the system?
     charge: 0
     # 3D periodic system
@@ -33,13 +33,18 @@ calculation:
         axis: z
         degrees: 160.0
     # box size along z
-    zlen: 100.0
+    zlen: 50.0
     add_electrode: True
-    pairs: 10
+    # Number of pf6-bmim pairs on each side of the electrode
+    pairs:
+        number: 4
+        separation: 11.0
+        vector: z
+        rotation_angle: 180.0
     # which ions to add to the lhs and rhs of the simulation box
     # A or C on either side or A and C
     l_ions: A C
-    r_ions: A C
+    r_ions: N 
 XC:
     # Perform PBE-vdW DF.
     vdW: True
