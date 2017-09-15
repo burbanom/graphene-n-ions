@@ -40,7 +40,7 @@ calculation:
         number: 2
         separation: 11.0
         vector: z
-        rotation_angle: 90.0
+        rotation_angle: 180.0
     # which ions to add to the lhs and rhs of the simulation box
     # A or C on either side or A and C
     #l_ions: A C

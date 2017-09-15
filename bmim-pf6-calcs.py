@@ -104,10 +104,11 @@ def run_calc( my_dir, calc, box, debug = False ):
         else:
             calc.run()
             ranOK = True
-        #break
+            box.write('positions.vasp')
+            box.write('positions.xyz')
     except subprocess.CalledProcessError:
         ranOK = False 
-        #continue
+    #######################################################
     if ranOK:
         result = return_value(calc.output_path,eng_string)
     else:
@@ -236,11 +237,11 @@ if __name__ == '__main__':
 
     pf6 = bmim_pf6_opt[0:7]; bmim = bmim_pf6_opt[7:32]; electrode = bmim_pf6_opt[32:]
     pair = pf6+bmim
-    z_shift = abs(electrode.get_center_of_mass()-pair.get_center_of_mass())[2]
+    eq_dist_ion_pair_electrode = abs(electrode.get_center_of_mass()-pair.get_center_of_mass())[2]
     electrode.center()
     pair.center()
-    pair.translate([0.0,0.0,-z_shift])
-    pf6 = pair[0:7]; bmim = pair[7:32]
+    pair.translate([0.0,0.0,-eq_dist_ion_pair_electrode])
+    pf6 = deepcopy(pair[0:7]); bmim = deepcopy(pair[7:32])
     eq_dist_ion_pair = linalg.norm(bmim.get_center_of_mass() - pf6.get_center_of_mass())
 
     if diagonalize:
@@ -266,8 +267,8 @@ if __name__ == '__main__':
         #FORCE_EVAL.DFT.QS.Eps_default = 1.0E-10
         #FORCE_EVAL.DFT.QS.Eps_pgf_orb = 1.0E-07
 
-    lhs = Atoms(); rhs = Atoms()
     if not pairs:
+        lhs = Atoms(); rhs = Atoms()
         for ion in l_ions:
             if ion == 'A':
                 lhs.extend(pf6)
@@ -283,7 +284,6 @@ if __name__ == '__main__':
     if pairs >= 1:
         lattice = build_lattice(pairs, motif=pair,lattice_constant=separation)
         l_confs = create_configurations(lattice,vector,rotation_angle)
-        r_confs = deepcopy(l_confs)
         ######
         for key in l_confs.keys():
             l_confs[key].set_cell(bmim_pf6_opt.cell)
@@ -295,10 +295,13 @@ if __name__ == '__main__':
                     (l_confs[key]+electrode).write('lhs_'+key+'_positions.vasp')
                     print('LHS ions are too close to the electrode')
                     sys.exit()
+
+        lattice = build_lattice(pairs, motif=pair,lattice_constant=separation)
+        r_confs = create_configurations(lattice,vector,rotation_angle)
         for key in r_confs.keys():
             r_confs[key].set_cell(bmim_pf6_opt.cell)
             r_confs[key].center(axis=(0,1))
-            r_confs[key].translate([0.0,0.0,2*z_shift])
+            r_confs[key].translate([0.0,0.0,2*eq_dist_ion_pair_electrode])
             if rshift != 0.0:
                 r_confs[key].center(axis=2)
                 r_confs[key].translate([0.0,0.0,rshift])
@@ -345,7 +348,7 @@ if __name__ == '__main__':
                 FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
                 box.pbc = [False,False,False]
 
-            dir_name = calc.project_name + '-' + 'L-' + str(l_key) + '-R-' + str(r_key)
+            dir_name = calc.project_name + '-L-' + str(l_key) + '-R-' + str(r_key)
             energies[l_key][r_key] = run_calc(dir_name, calc, box, debug)  
             energies.to_csv('results.csv')
 
