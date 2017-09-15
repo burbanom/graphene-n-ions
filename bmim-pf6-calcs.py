@@ -10,14 +10,14 @@ import os, re, sys
 import fnmatch
 import shutil
 from options import read_options
-from itertools import combinations
+from configurations import build_lattice, create_configurations 
 from copy import deepcopy
 
 def parse_commandline_arguments():
     import argparse
     parser = argparse.ArgumentParser( description = 'cp2k calculator' )
     parser.add_argument( '--ncores', '-nc', metavar = 'N', type=int, required = True, help='set the number of cores to use for this calculation' )
-    parser.add_argument( '--debug', '-d', metavar = 'B', type=bool, required = False, default = False, help='Do not run calcs, but write input files instead.' )
+    parser.add_argument( '--debug', '-d', action='store_true', required = False, help='Do not run calcs, but write input files instead.' )
 
     return parser.parse_args()
 
@@ -101,8 +101,9 @@ def run_calc( my_dir, calc, box, debug = False ):
             calc.write_input_file()
             box.write('positions.vasp')
             box.write('positions.xyz')
-        calc.run()
-        ranOK = True
+        else:
+            calc.run()
+            ranOK = True
         #break
     except subprocess.CalledProcessError:
         ranOK = False 
@@ -113,78 +114,6 @@ def run_calc( my_dir, calc, box, debug = False ):
         result = np.nan
     os.chdir(root_dir)
     return result 
-
-def build_lattice( points, motif, lattice_constant ):
-    "A function for creating very simple lattices"
-    motifs_list = []
-    # A lattice with two points
-    if points == 2:
-        for point in range(points):
-            this_motif = motif.copy()
-            if point == 0:
-                motifs_list.append(this_motif)
-            else:
-                this_motif.translate([lattice_constant,0.0,0.0])
-                motifs_list.append(this_motif)
-    # A lattice with three points
-    if points == 3:
-        for point in range(points):
-            this_motif = motif.copy()
-            if point == 0:
-                motifs_list.append(this_motif)
-            elif point == 1:
-                this_motif.translate([-lattice_constant/2.0,-lattice_constant*np.sin(np.pi/3.0),0.0])
-                motifs_list.append(this_motif)
-            else:
-                this_motif.translate([lattice_constant/2.0,-lattice_constant*np.sin(np.pi/3.0),0.0])
-                motifs_list.append(this_motif)
-    if points == 4:
-        for point in range(points):
-            this_motif = motif.copy()
-            if point == 0:
-                motifs_list.append(this_motif)
-            elif point == 1:
-                this_motif.translate([lattice_constant,0.0,0.0])
-                motifs_list.append(this_motif)
-            elif point == 2:
-                this_motif.translate([0.0,-lattice_constant,0.0])
-                motifs_list.append(this_motif)
-            elif point == 3:
-                this_motif.translate([lattice_constant,-lattice_constant,0.0])
-                motifs_list.append(this_motif)
-    return motifs_list
-
-def create_configurations( lattice, angle ):
-    """A function for generating all possible combinations of a list
-    of configurations. The result is a dictionary with the label 'A'
-    being used to mark positions on the lattice where no rotation has
-    been applied and the label 'C' to indicate that this point has undergone
-    a rotation of 180.0 about the z-axis.
-    """
-    les_confs = []
-    conf_names = []
-    for L in range(len(lattice)+1):
-        for subset in combinations(range(len(lattice)), L):
-            name = len(lattice) * ['A']
-            lattice_copy = deepcopy(lattice)
-            conf = Atoms()
-            if len(subset) == 0:       
-                for item in lattice_copy:
-                    conf.extend(item)
-            elif len(subset) == len(lattice_copy):
-                for item in lattice_copy:
-                    item.rotate(v='z',a= angle * (np.pi/180.), center='COM')
-                    conf.extend(item)
-                    name = len(lattice) * ['C']
-            else:
-                for index in subset:
-                    lattice_copy[index-1].rotate(v='z',a=angle * (np.pi/180.), center='COM')
-                    name[index] = 'C'
-                for item in lattice_copy:
-                    conf.extend(item)
-            les_confs.append(conf)
-            conf_names.append(''.join(name))
-    return dict(zip(conf_names,les_confs))
 
 if __name__ == '__main__':
 
@@ -353,7 +282,7 @@ if __name__ == '__main__':
 
     if pairs >= 1:
         lattice = build_lattice(pairs, motif=pair,lattice_constant=separation)
-        l_confs = create_configurations(lattice,rotation_angle)
+        l_confs = create_configurations(lattice,vector,rotation_angle)
         r_confs = deepcopy(l_confs)
         ######
         for key in l_confs.keys():
