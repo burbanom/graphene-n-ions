@@ -5,13 +5,15 @@ from ase.io import read, write
 from ase import Atoms
 import pandas as pd
 import ase
-from pycp2k import CP2K
 import os, re, sys
 import fnmatch
 import shutil
 from options import read_options
 from configurations import build_lattice, create_configurations 
 from copy import deepcopy
+import sys
+sys.path.insert(0,'../pycp2k')
+from pycp2k import CP2K
 
 def parse_commandline_arguments():
     import argparse
@@ -75,6 +77,7 @@ def run_calc( my_dir, calc, box, debug = False ):
     os.chdir(my_dir)
     calc.create_cell(SUBSYS,box)
     calc.create_coord(SUBSYS,box)
+    box.write('positions.cif')
     result = np.nan 
     ranOK = False
 #    for scf in ['OT','DIAG']:
@@ -99,13 +102,9 @@ def run_calc( my_dir, calc, box, debug = False ):
     try:
         if debug:
             calc.write_input_file()
-            box.write('positions.vasp')
-            box.write('positions.xyz')
         else:
             calc.run()
             ranOK = True
-            box.write('positions.vasp')
-            box.write('positions.xyz')
     except subprocess.CalledProcessError:
         ranOK = False 
     #######################################################
@@ -129,7 +128,6 @@ if __name__ == '__main__':
     charge = run_options['calculation']['charge']
     lshift = run_options['calculation']['lshift']
     rshift = run_options['calculation']['rshift']
-    yshift = run_options['calculation']['yshift']
     if 'r_rotate' in run_options['calculation'].keys():
         degrees = run_options['calculation']['r_rotate']['degrees']
         axis = run_options['calculation']['r_rotate']['axis']
@@ -241,8 +239,7 @@ if __name__ == '__main__':
     electrode.center()
     pair.center()
     pair.translate([0.0,0.0,-eq_dist_ion_pair_electrode])
-    pf6 = deepcopy(pair[0:7]); bmim = deepcopy(pair[7:32])
-    eq_dist_ion_pair = linalg.norm(bmim.get_center_of_mass() - pf6.get_center_of_mass())
+    #eq_dist_ion_pair = linalg.norm(bmim.get_center_of_mass() - pf6.get_center_of_mass())
 
     if diagonalize:
         FORCE_EVAL.DFT.SCF.Max_scf = 300
@@ -261,25 +258,6 @@ if __name__ == '__main__':
         FORCE_EVAL.DFT.SCF.Max_scf = 15
         FORCE_EVAL.DFT.SCF.OUTER_SCF.Max_scf = 20
         FORCE_EVAL.DFT.SCF.OUTER_SCF.Eps_scf = eps_scf
-        #FORCE_EVAL.DFT.QS.Map_consistent = 'TRUE'
-        #FORCE_EVAL.DFT.QS.Extrapolation = 'ASPC'
-        #FORCE_EVAL.DFT.QS.Extrapolation_order = 3 
-        #FORCE_EVAL.DFT.QS.Eps_default = 1.0E-10
-        #FORCE_EVAL.DFT.QS.Eps_pgf_orb = 1.0E-07
-
-    if not pairs:
-        lhs = Atoms(); rhs = Atoms()
-        for ion in l_ions:
-            if ion == 'A':
-                lhs.extend(pf6)
-            elif ion == 'C':
-                lhs.extend(bmim)
-
-        for ion in r_ions:
-            if ion == 'A':
-                rhs.extend(pf6)
-            elif ion == 'C':
-                rhs.extend(bmim)
 
     if pairs >= 1:
         lattice = build_lattice(pairs, motif=pair,lattice_constant=separation)
@@ -310,23 +288,6 @@ if __name__ == '__main__':
                     print('RHS ions are too close to the electrode')
                     sys.exit()
 
-#    lhs.set_cell(bmim_pf6_opt.cell)
-#    rhs.set_cell(bmim_pf6_opt.cell)
-#
-#
-#    if abs(yshift) >= bmim_pf6_opt.get_cell_lengths_and_angles()[2] / 2.0:
-#        print('yshift is too large for this box size')
-#        sys.exit()
-#
-#    if degrees != 0.0:
-#        rhs.rotate(v = axis, a= degrees * (np.pi/180.0) , center='COM' )
-#
-#    lhs.translate([0.0,yshift/2.0,0.0])
-#    rhs.translate([0.0,-yshift/2.0,0.0])
-#
-#    translate_range = np.arange(move_range_b,move_range_e+move_range_s,move_range_s)
-#    rhs_list = translate_ions( rhs, translate_range, move_direction )
-
     energies = pd.DataFrame(columns=l_confs.keys(),index=r_confs.keys())
 
     for  l_key in l_confs.keys():
@@ -349,7 +310,7 @@ if __name__ == '__main__':
                 box.pbc = [False,False,False]
 
             dir_name = calc.project_name + '-L-' + str(l_key) + '-R-' + str(r_key)
-            energies[l_key][r_key] = run_calc(dir_name, calc, box, debug)  
+            energies[l_key][r_key] = run_calc(dir_name, calc, box=box, debug=debug)  
             energies.to_csv('results.csv')
 
     with open("options.yml") as f0:
