@@ -12,7 +12,7 @@ from options import read_options
 from configurations import build_lattice, create_configurations 
 from copy import deepcopy
 import sys
-sys.path.insert(0,'../pycp2k')
+#sys.path.insert(0,'../pycp2k')
 from pycp2k import CP2K
 
 def parse_commandline_arguments():
@@ -78,6 +78,7 @@ def run_calc( my_dir, calc, box, debug = False ):
     calc.create_cell(SUBSYS,box)
     calc.create_coord(SUBSYS,box)
     box.write('positions.cif')
+    box.write('positions.xyz')
     result = np.nan 
     ranOK = False
 #    for scf in ['OT','DIAG']:
