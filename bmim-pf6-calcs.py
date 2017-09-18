@@ -6,13 +6,13 @@ from ase import Atoms
 import pandas as pd
 import ase
 import os, re, sys
-import fnmatch
 import shutil
-from options import read_options
+from yml_options import read_options
+from file_utils import return_value
 from configurations import build_lattice, create_configurations 
 from copy import deepcopy
 import sys
-#sys.path.insert(0,'../pycp2k')
+sys.path.insert(0,'../pycp2k')
 from pycp2k import CP2K
 
 def parse_commandline_arguments():
@@ -22,28 +22,6 @@ def parse_commandline_arguments():
     parser.add_argument( '--debug', '-d', action='store_true', required = False, help='Do not run calcs, but write input files instead.' )
 
     return parser.parse_args()
-
-def clean_files(path,pattern):
-    all_files = os.listdir(path)
-    filtered = fnmatch.filter(all_files,pattern+"*")
-    for element in filtered:
-        os.remove(os.path.join(path,element))
-
-def return_value(filename,pattern):
-    import mmap
-    if type(pattern) is str:
-        pattern = pattern.encode()
-    with open(filename, "r") as fin:
-        # memory-map the file, size 0 means whole file
-        m = mmap.mmap(fin.fileno(), 0, prot=mmap.PROT_READ)
-        #                             prot argument is *nix only
-        i = m.rfind(pattern)
-        try:
-            m.seek(i)             # seek to the location
-        except ValueError:
-            return np.nan
-        line = m.readline()   # read to the end of the line
-    return float(line.split()[-1])
 
 def translate_ions( molec, z_vect, direction ):
     my_list = []
