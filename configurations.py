@@ -2,6 +2,12 @@ import numpy as np
 from ase import Atoms
 from itertools import combinations
 from copy import deepcopy
+import sys
+
+def too_close( mol, cutoff):
+    # decide whether the number of atom distances below cutoff are
+    # equal to the number of atoms.
+    return not np.sum(mol.get_all_distances() < cutoff) == len(mol)
 
 def build_lattice( points, motif, lattice_constant ):
     "A function for creating very simple lattices"
@@ -19,27 +25,30 @@ def build_lattice( points, motif, lattice_constant ):
     if points == 3:
         for point in range(points):
             this_motif = motif.copy()
+            x_shift = abs(this_motif.get_center_of_mass()[0] - np.min(this_motif.positions.T[0]))
             if point == 0:
                 motifs_list.append(this_motif)
             elif point == 1:
-                this_motif.translate([-lattice_constant/2.0,-lattice_constant*np.sin(np.pi/3.0),0.0])
+                this_motif.translate([-(lattice_constant+x_shift),0.0,0.0])
                 motifs_list.append(this_motif)
             else:
-                this_motif.translate([lattice_constant/2.0,-lattice_constant*np.sin(np.pi/3.0),0.0])
+                this_motif.translate([lattice_constant+x_shift,0.0,0.0])
                 motifs_list.append(this_motif)
     if points == 4:
         for point in range(points):
             this_motif = motif.copy()
+            x_shift = abs(this_motif.get_center_of_mass()[0] - np.min(this_motif.positions.T[0]))
+            y_shift = abs(this_motif.get_center_of_mass()[1] - np.min(this_motif.positions.T[1]))
             if point == 0:
                 motifs_list.append(this_motif)
             elif point == 1:
-                this_motif.translate([lattice_constant,0.0,0.0])
+                this_motif.translate([lattice_constant+x_shift,0.0,0.0])
                 motifs_list.append(this_motif)
             elif point == 2:
-                this_motif.translate([0.0,-lattice_constant,0.0])
+                this_motif.translate([0.0,-(lattice_constant+y_shift),0.0])
                 motifs_list.append(this_motif)
             elif point == 3:
-                this_motif.translate([lattice_constant,-lattice_constant,0.0])
+                this_motif.translate([lattice_constant+x_shift,-(lattice_constant+y_shift),0.0])
                 motifs_list.append(this_motif)
     return motifs_list
 
@@ -73,6 +82,9 @@ def create_configurations( lattice, axis,  angle ):
                     conf.extend(item)
             les_confs.append(conf)
             conf_names.append(''.join(name))
+    for conf in les_confs: 
+        if too_close(conf,1.0):
+            print('Some atoms were found to be too close when building the configurations')
+            sys.exit()
     return dict(zip(conf_names,les_confs))
-
 

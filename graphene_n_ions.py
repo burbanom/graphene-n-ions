@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from __future__ import print_function
 import numpy as np
 from scipy import linalg
@@ -9,10 +10,11 @@ import os, re, sys
 import shutil
 from yml_options import read_options
 from file_utils import return_value
-from configurations import build_lattice, create_configurations 
+from configurations import * 
 from copy import deepcopy
 import sys
 sys.path.insert(0,'../pycp2k')
+#sys.path.insert(0,'../python-utils')
 from pycp2k import CP2K
 
 def parse_commandline_arguments():
@@ -35,11 +37,6 @@ def translate_ions( molec, z_vect, direction ):
             dummy.translate([0.0,0.0,float(shift)])
         my_list.append(dummy)
     return my_list
-
-def too_close( mol, cutoff):
-    # decide whether the number of atom distances below cutoff are
-    # equal to the number of atoms.
-    return not np.sum(mol.get_all_distances() < cutoff) == len(mol)
 
 def run_calc( my_dir, calc, box, debug = False ):
     # This function will run the calculation intitially using the 
@@ -214,6 +211,8 @@ if __name__ == '__main__':
 
     pf6 = bmim_pf6_opt[0:7]; bmim = bmim_pf6_opt[7:32]; electrode = bmim_pf6_opt[32:]
     pair = pf6+bmim
+    pair.rotate('y',a=np.pi/2,center='COM')
+    pair.rotate('x',a=np.pi/9.,center='COM')
     eq_dist_ion_pair_electrode = abs(electrode.get_center_of_mass()-pair.get_center_of_mass())[2]
     electrode.center()
     pair.center()
@@ -249,7 +248,7 @@ if __name__ == '__main__':
                 l_confs[key].center(axis=2)
                 l_confs[key].translate([0.0,0.0,lshift])
                 if add_electrode and too_close(l_confs[key]+electrode,1.0):
-                    (l_confs[key]+electrode).write('lhs_'+key+'_positions.vasp')
+                    (l_confs[key]+electrode).write('lhs_'+key+'_positions.xyz')
                     print('LHS ions are too close to the electrode')
                     sys.exit()
 
@@ -257,13 +256,14 @@ if __name__ == '__main__':
         r_confs = create_configurations(lattice,vector,rotation_angle)
         for key in r_confs.keys():
             r_confs[key].set_cell(bmim_pf6_opt.cell)
-            r_confs[key].center(axis=(0,1))
-            r_confs[key].translate([0.0,0.0,2*eq_dist_ion_pair_electrode])
+            r_confs[key].rotate('y',a=np.pi,center='COM')
+            r_confs[key].center(axis=(0,1,2))
+            r_confs[key].translate([0.0,0.0,eq_dist_ion_pair_electrode])
             if rshift != 0.0:
                 r_confs[key].center(axis=2)
                 r_confs[key].translate([0.0,0.0,rshift])
                 if add_electrode and too_close(r_confs[key]+electrode,1.0):
-                    (r_confs[key]+electrode).write('rhs_'+key+'_positions.vasp')
+                    (r_confs[key]+electrode).write('rhs_'+key+'_positions.xyz')
                     print('RHS ions are too close to the electrode')
                     sys.exit()
 

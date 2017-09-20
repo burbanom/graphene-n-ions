@@ -19,18 +19,17 @@ calculation:
         step: 1.0
     # Initial shift for lhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
-    #lshift: -3.5019672082
-    lshift: 0.0 
+    lshift: -5.7
     # Initial shift for rhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
-    rshift: 0.0 
+    rshift: 5.7
     # box size along z
     zlen: 50.0
-    add_electrode: True
+    add_electrode: True 
     # Number of pf6-bmim pairs on each side of the electrode
     pairs:
-        number: 2
-        separation: 12.0
+        number: 4
+        separation: 5.0452
         vector: z
         rotation_angle: 180.0 
     # which ions to add to the lhs and rhs of the simulation box
