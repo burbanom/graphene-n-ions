@@ -13,7 +13,7 @@ from file_utils import return_value
 from configurations import * 
 from copy import deepcopy
 import sys
-sys.path.insert(0,'../pycp2k')
+#sys.path.insert(0,'../pycp2k')
 #sys.path.insert(0,'../python-utils')
 from pycp2k import CP2K
 
@@ -24,19 +24,6 @@ def parse_commandline_arguments():
     parser.add_argument( '--debug', '-d', action='store_true', required = False, help='Do not run calcs, but write input files instead.' )
 
     return parser.parse_args()
-
-def translate_ions( molec, z_vect, direction ):
-    my_list = []
-    for shift in z_vect:
-        dummy = molec.copy()
-        if direction == 0:
-            dummy.translate([float(shift),0.0,0.0])
-        elif direction == 1:
-            dummy.translate([0.0,float(shift),0.0])
-        else:
-            dummy.translate([0.0,0.0,float(shift)])
-        my_list.append(dummy)
-    return my_list
 
 def run_calc( my_dir, calc, box, debug = False ):
     # This function will run the calculation intitially using the 
@@ -109,8 +96,15 @@ if __name__ == '__main__':
         axis = run_options['calculation']['r_rotate']['axis']
     else:
         degrees = 0.0
-    zlen = run_options['calculation']['zlen']
-    add_electrode = run_options['calculation']['add_electrode']
+    z_len = run_options['calculation']['z_len']
+    if 'add_electrode' in run_options['calculation'].keys():
+        add_electrode = run_options['calculation']['add_electrode']
+    else:
+        add_electrode = False
+    if 'tailored_box' in run_options['calculation'].keys():
+        tailored_box = run_options['calculation']['tailored_box']
+    else:
+        tailored_box = False
     if 'pairs' in run_options['calculation'].keys():
         pairs = run_options['calculation']['pairs']['number']
         separation = run_options['calculation']['pairs']['separation']
@@ -204,10 +198,10 @@ if __name__ == '__main__':
 
     if bigbox: 
         bmim_pf6_opt = read(coords+'/opt_coords_bigbox.xyz')
-        bmim_pf6_opt.cell = [44.20800018, 42.54000092, zlen]
+        bmim_pf6_opt.cell = [44.20800018, 42.54000092, z_len]
     else:
         bmim_pf6_opt = read(coords+'/opt_coords.xyz')
-        bmim_pf6_opt.cell = [22.104, 21.27, zlen]
+        bmim_pf6_opt.cell = [22.104, 21.27, z_len]
 
     pf6 = bmim_pf6_opt[0:7]; bmim = bmim_pf6_opt[7:32]; electrode = bmim_pf6_opt[32:]
     pair = pf6+bmim
@@ -238,24 +232,31 @@ if __name__ == '__main__':
         FORCE_EVAL.DFT.SCF.OUTER_SCF.Eps_scf = eps_scf
 
     if pairs >= 1:
+        generated_electrode = False
+        cell = bmim_pf6_opt.cell
         lattice = build_lattice(pairs, motif=pair,lattice_constant=separation)
         l_confs = create_configurations(lattice,vector,rotation_angle)
         ######
         for key in l_confs.keys():
-            l_confs[key].set_cell(bmim_pf6_opt.cell)
+            if tailored_box:
+                while not generated_electrode:
+                    electrode = generate_electrode(l_confs[key], lattice_constant=separation, z_len=z_len)
+                    cell = electrode.cell
+                    generated_electrode = True
+            l_confs[key].set_cell(cell)
             l_confs[key].center(axis=(0,1))
             if lshift != 0.0:
                 l_confs[key].center(axis=2)
                 l_confs[key].translate([0.0,0.0,lshift])
                 if add_electrode and too_close(l_confs[key]+electrode,1.0):
-                    (l_confs[key]+electrode).write('lhs_'+key+'_positions.xyz')
+                    (l_confs[key]+electrode).write('lhs_'+key+'_positions.vasp')
                     print('LHS ions are too close to the electrode')
                     sys.exit()
 
         lattice = build_lattice(pairs, motif=pair,lattice_constant=separation)
         r_confs = create_configurations(lattice,vector,rotation_angle)
         for key in r_confs.keys():
-            r_confs[key].set_cell(bmim_pf6_opt.cell)
+            r_confs[key].set_cell(cell)
             r_confs[key].rotate('y',a=np.pi,center='COM')
             r_confs[key].center(axis=(0,1,2))
             r_confs[key].translate([0.0,0.0,eq_dist_ion_pair_electrode])
@@ -263,7 +264,7 @@ if __name__ == '__main__':
                 r_confs[key].center(axis=2)
                 r_confs[key].translate([0.0,0.0,rshift])
                 if add_electrode and too_close(r_confs[key]+electrode,1.0):
-                    (r_confs[key]+electrode).write('rhs_'+key+'_positions.xyz')
+                    (r_confs[key]+electrode).write('rhs_'+key+'_positions.vasp')
                     print('RHS ions are too close to the electrode')
                     sys.exit()
 

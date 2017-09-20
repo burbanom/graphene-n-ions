@@ -24,8 +24,9 @@ calculation:
     # A value of 0.0 leaves the ion in it's original position
     rshift: 5.7
     # box size along z
-    zlen: 50.0
+    z_len: 50.0
     add_electrode: True 
+    tailored_box: True 
     # Number of pf6-bmim pairs on each side of the electrode
     pairs:
         number: 4
