@@ -39,8 +39,8 @@ def run_calc( my_dir, calc, box, debug = False ):
     os.chdir(my_dir)
     calc.create_cell(SUBSYS,box)
     calc.create_coord(SUBSYS,box)
-    box.write('positions.cif')
-    box.write('positions.xyz')
+    box.write(my_dir+'.cif')
+    box.write(my_dir+'.xyz')
     result = np.nan 
     ranOK = False
 #    for scf in ['OT','DIAG']:
@@ -257,7 +257,7 @@ if __name__ == '__main__':
         r_confs = create_configurations(lattice,vector,rotation_angle)
         for key in r_confs.keys():
             r_confs[key].set_cell(cell)
-            r_confs[key].rotate('y',a=np.pi,center='COM')
+            r_confs[key].rotate('y',a=np.pi,center='COP')
             r_confs[key].center(axis=(0,1,2))
             r_confs[key].translate([0.0,0.0,eq_dist_ion_pair_electrode])
             if rshift != 0.0:
