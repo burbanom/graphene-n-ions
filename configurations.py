@@ -75,7 +75,7 @@ def build_lattice( points, motif, lattice_constant ):
                 motifs_list.append(this_motif)
     return motifs_list
 
-def create_configurations( lattice, axis,  angle ):
+def create_all_configurations( lattice, axis,  angle ):
     """A function for generating all possible combinations of a list
     of configurations. The result is a dictionary with the label 'A'
     being used to mark positions on the lattice where no rotation has
@@ -89,22 +89,43 @@ def create_configurations( lattice, axis,  angle ):
             name = len(lattice) * ['A']
             lattice_copy = deepcopy(lattice)
             conf = Atoms()
-            if len(subset) == 0:       
-                for item in lattice_copy:
-                    conf.extend(item)
-            elif len(subset) == len(lattice_copy):
-                for item in lattice_copy:
-                    item.rotate(v=axis,a= angle * (np.pi/180.), center='COM')
-                    conf.extend(item)
-                    name = len(lattice) * ['C']
-            else:
-                for index in subset:
-                    lattice_copy[index-1].rotate(v=axis,a=angle * (np.pi/180.), center='COM')
-                    name[index] = 'C'
-                for item in lattice_copy:
-                    conf.extend(item)
+            for index in subset:
+                lattice_copy[index-1].rotate(v=axis,a=angle * (np.pi/180.), center='COM')
+                name[index] = 'C'
+            for item in lattice_copy:
+                conf.extend(item)
             les_confs.append(conf)
             conf_names.append(''.join(name))
+    for conf in les_confs: 
+        if too_close(conf,1.0):
+            conf.write('conf.xyz')
+            print(conf.get_all_distances())
+            print('Some atoms were found to be too close when building the configurations')
+            sys.exit()
+    return dict(zip(conf_names,les_confs))
+
+def create_configurations( lattice, axis,  angle ):
+    """A function for generating all possible combinations of a list
+    of configurations. The result is a dictionary with the label 'A'
+    being used to mark positions on the lattice where no rotation has
+    been applied and the label 'C' to indicate that this point has undergone
+    a rotation of 180.0 about the z-axis.
+    """
+    les_confs = []
+    conf_names = []
+    for i in [0,1]:
+        for index in range(i,len(lattice),2):
+            print(index)
+            name = len(lattice) * ['A']
+            lattice_copy = deepcopy(lattice)
+            conf = Atoms()
+            lattice_copy[index].rotate(v=axis,a=angle * (np.pi/180.), center='COM')
+            name[index] = 'C'
+        print(name)
+        for item in lattice_copy:
+            conf.extend(item)
+        les_confs.append(conf)
+        conf_names.append(''.join(name))
     for conf in les_confs: 
         if too_close(conf,1.0):
             conf.write('conf.xyz')

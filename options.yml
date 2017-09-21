@@ -24,7 +24,7 @@ calculation:
     # A value of 0.0 leaves the ion in it's original position
     rshift: 5.7
     # box size along z
-    z_len: 50.0
+    z_len: 40.0
     add_electrode: True 
     tailored_box: True 
     # Number of pf6-bmim pairs on each side of the electrode
@@ -41,10 +41,10 @@ XC:
     # Perform PBE-vdW DF.
     vdW: True
 kind:
-    basis: DZVP-MOLOPT-GTH
+    basis: TZVP-MOLOPT-GTH
 scf:
     # MGRID cutoff
-    mgrid: 280
+    mgrid: 320
     # scf tolerance
     eps_scf: 1.0E-05
     # Perform diagonalization.
