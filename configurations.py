@@ -59,19 +59,19 @@ def build_lattice( points, motif, lattice_constant ):
             if point == 0:
                 motifs_list.append(this_motif)
             elif point == 1:
-                this_motif.translate([-(lattice_constant+x_shift),0.0,0.0])
+                this_motif.translate([(lattice_constant+x_shift),0.0,0.0])
                 motifs_list.append(this_motif)
             elif point == 2:
-                this_motif.translate([lattice_constant+x_shift,0.0,0.0])
+                this_motif.translate([2*(lattice_constant+x_shift),0.0,0.0])
                 motifs_list.append(this_motif)
             elif point == 3:
                 this_motif.translate([0.0,-(lattice_constant+y_shift),0.0])
                 motifs_list.append(this_motif)
             elif point == 4:
-                this_motif.translate([lattice_constant+x_shift,-(lattice_constant+y_shift),0.0])
+                this_motif.translate([(lattice_constant+x_shift),-(lattice_constant+y_shift),0.0])
                 motifs_list.append(this_motif)
             elif point == 5:
-                this_motif.translate([-(lattice_constant+x_shift),-(lattice_constant+y_shift),0.0])
+                this_motif.translate([2*(lattice_constant+x_shift),-(lattice_constant+y_shift),0.0])
                 motifs_list.append(this_motif)
     return motifs_list
 
