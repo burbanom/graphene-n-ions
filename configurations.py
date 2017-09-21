@@ -30,10 +30,10 @@ def build_lattice( points, motif, lattice_constant ):
             if point == 0:
                 motifs_list.append(this_motif)
             elif point == 1:
-                this_motif.translate([-(lattice_constant+x_shift),0.0,0.0])
+                this_motif.translate([(lattice_constant+x_shift),0.0,0.0])
                 motifs_list.append(this_motif)
             else:
-                this_motif.translate([lattice_constant+x_shift,0.0,0.0])
+                this_motif.translate([2*(lattice_constant+x_shift),0.0,0.0])
                 motifs_list.append(this_motif)
     if points == 4:
         for point in range(points):
