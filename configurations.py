@@ -114,14 +114,12 @@ def create_configurations( lattice, axis,  angle ):
     les_confs = []
     conf_names = []
     for i in [0,1]:
+        name = len(lattice) * ['A']
+        lattice_copy = deepcopy(lattice)
         for index in range(i,len(lattice),2):
-            print(index)
-            name = len(lattice) * ['A']
-            lattice_copy = deepcopy(lattice)
-            conf = Atoms()
             lattice_copy[index].rotate(v=axis,a=angle * (np.pi/180.), center='COM')
             name[index] = 'C'
-        print(name)
+        conf = Atoms()
         for item in lattice_copy:
             conf.extend(item)
         les_confs.append(conf)

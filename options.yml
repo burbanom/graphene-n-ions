@@ -29,7 +29,7 @@ calculation:
     tailored_box: True 
     # Number of pf6-bmim pairs on each side of the electrode
     pairs:
-        number: 4
+        number: 6
         separation: 5.0452
         vector: z
         rotation_angle: 180.0 
