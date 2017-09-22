@@ -85,9 +85,9 @@ if __name__ == '__main__':
     run_options = read_options('options.yml')
     # calculation parameters
     jobname = run_options['calculation']['jobname']
-    coords = run_options['calculation']['coords']
+    coords_folder = run_options['calculation']['coords_folder']
+    coords_file = run_options['calculation']['coords_file']
     periodicity = run_options['calculation']['periodicity']
-    bigbox = run_options['calculation']['bigbox']
     charge = run_options['calculation']['charge']
     lshift = run_options['calculation']['lshift']
     rshift = run_options['calculation']['rshift']
@@ -110,6 +110,12 @@ if __name__ == '__main__':
         separation = run_options['calculation']['pairs']['separation']
         vector = run_options['calculation']['pairs']['vector']
         rotation_angle = run_options['calculation']['pairs']['rotation_angle']
+        if 'initial_rotations' in run_options['calculation']['pairs']:
+            initial_rot_axes = run_options['calculation']['pairs']['initial_rotations']['axes']
+            initial_rot_angles = run_options['calculation']['pairs']['initial_rotations']['angles']
+        else:
+            initial_rot_axes = []
+            initial_rot_angles = [] 
     else:
         pairs = 0
         separation = 0. 
@@ -196,17 +202,18 @@ if __name__ == '__main__':
 
 
 
-    if bigbox: 
-        bmim_pf6_opt = read(coords+'/opt_coords_bigbox.xyz')
+    bmim_pf6_opt = read(coords_folder+'/'+coords_file)
+    if coords_file == 'opt_coords_bigbox.xyz': 
         bmim_pf6_opt.cell = [44.20800018, 42.54000092, z_len]
     else:
-        bmim_pf6_opt = read(coords+'/opt_coords.xyz')
         bmim_pf6_opt.cell = [22.104, 21.27, z_len]
 
     pf6 = bmim_pf6_opt[0:7]; bmim = bmim_pf6_opt[7:32]; electrode = bmim_pf6_opt[32:]
     pair = pf6+bmim
-    pair.rotate('y',a=np.pi/2,center='COM')
-    pair.rotate('x',a=np.pi/9.,center='COM')
+
+    for axis, angle in zip(initial_rot_axes,initial_rot_angles):
+        pair.rotate(v=axis,a= angle * (np.pi/ 180.),center='COP')
+
     eq_dist_ion_pair_electrode = abs(electrode.get_center_of_mass()-pair.get_center_of_mass())[2]
     electrode.center()
     pair.center()
