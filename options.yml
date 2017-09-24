@@ -6,43 +6,44 @@ calculation:
     coords_file: BMIM-PF6.xyz
     # Impose charge of 0 on the system?
     charge: 0
-    # 3D periodic system
-    periodicity: 2
+    box:
+        # 3D periodic system
+        periodicity: 2
+        # box size along x
+        x_len: 23.43
+        # box size along y
+        y_len: 22.13560932073025
+        # box size along z
+        z_len: 40.0
+        add_electrode: True 
+        tailored_box: True 
     # Perform calcs on large box (42 * 40 angstrom).
     # direction in which to apply the translation, 0 for x, 1 for y 
     # and 2 for z
     # Starting, end point and step of translation.
     r_move_range:
-        direction: z
+        #direction: z
         begin: 0.0
         end: 0.0
         step: 1.0
     # Initial shift for lhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
-    lshift: -7.5
+    l_shift: -7.5
     # Initial shift for rhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
-    rshift: 7.5
-    # box size along z
-    z_len: 40.0
-    add_electrode: True 
-    tailored_box: True 
+    r_shift: 7.5
     # Number of pf6-bmim pairs on each side of the electrode
     pairs:
         initial_rotations:
             axes: []
             angles: []
         number: 2
-        separation: 15.0
+        separation: 7.0
         vector: x
         rotation_angle: 180.0 
-    # which ions to add to the lhs and rhs of the simulation box
-    # A or C on either side or A and C
-    #l_ions: A C
-    #r_ions: N 
 XC:
     # Perform PBE-vdW DF.
-    vdW: True
+    vdW: True 
 kind:
     basis: TZVP-MOLOPT-GTH
 scf:

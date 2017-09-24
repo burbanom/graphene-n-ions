@@ -83,28 +83,63 @@ if __name__ == '__main__':
     args = parse_commandline_arguments()
     debug = args.debug
     run_options = read_options('options.yml')
+    ############################################################################
     # calculation parameters
-    jobname = run_options['calculation']['jobname']
-    coords_folder = run_options['calculation']['coords_folder']
-    coords_file = run_options['calculation']['coords_file']
-    periodicity = run_options['calculation']['periodicity']
-    charge = run_options['calculation']['charge']
-    lshift = run_options['calculation']['lshift']
-    rshift = run_options['calculation']['rshift']
+    try:
+        jobname = run_options['calculation']['jobname']
+    except:
+        jobname = eng
+    try:
+        coords_folder = run_options['calculation']['coords_folder']
+    except:
+        coords_folder = './' 
+    try:
+        coords_file = run_options['calculation']['coords_file']
+    except:
+        coords_file = 'BMIM-PF6.xyz'
+    #########################################################################
+    try:
+        periodicity = run_options['calculation']['box']['periodicity']
+    except:
+        periodicity = 2
+    try:
+        x_len = run_options['calculation']['box']['x_len']
+    except:
+        x_len = None
+    try:
+        y_len = run_options['calculation']['box']['y_len']
+    except:
+        y_len = None 
+    try:
+        z_len = run_options['calculation']['box']['z_len']
+    except:
+        z_len = 40.0
+    try: 
+        add_electrode = run_options['calculation']['box']['add_electrode']
+    except:
+        add_electrode = False
+    #try:
+    #    tailored_box = run_options['calculation']['box']['tailored_box']
+    #except:
+    #    tailored_box = False
+    #########################################################################
+    try:
+        charge = run_options['calculation']['charge']
+    except:
+        charge = 0
+    try:
+        l_shift = run_options['calculation']['l_shift']
+    except:
+        l_shift = 0.0
+    try:
+        r_shift = run_options['calculation']['r_shift']
+    except:
+        r_shift = 0.0
     if 'r_rotate' in run_options['calculation'].keys():
         degrees = run_options['calculation']['r_rotate']['degrees']
         axis = run_options['calculation']['r_rotate']['axis']
     else:
         degrees = 0.0
-    z_len = run_options['calculation']['z_len']
-    if 'add_electrode' in run_options['calculation'].keys():
-        add_electrode = run_options['calculation']['add_electrode']
-    else:
-        add_electrode = False
-    if 'tailored_box' in run_options['calculation'].keys():
-        tailored_box = run_options['calculation']['tailored_box']
-    else:
-        tailored_box = False
     if 'pairs' in run_options['calculation'].keys():
         pairs = run_options['calculation']['pairs']['number']
         separation = run_options['calculation']['pairs']['separation']
@@ -121,33 +156,53 @@ if __name__ == '__main__':
         separation = 0. 
         vector = None
         rotation_angle = 0.0
-    if 'l_ions' in run_options['calculation'].keys():
-        l_ions = run_options['calculation']['l_ions']
-    if 'r_ions' in run_options['calculation'].keys():
-        r_ions = run_options['calculation']['r_ions']
+
     if 'r_move_range' in run_options['calculation'].keys():
-        r_move_range_b = run_options['calculation']['r_move_range']['begin']
-        r_move_range_e = run_options['calculation']['r_move_range']['end']
-        r_move_range_s = run_options['calculation']['r_move_range']['step']
-        r_move_direction = run_options['calculation']['direction']
+        r_translate = True
+        try:
+            r_move_range_b = run_options['calculation']['r_move_range']['begin']
+        except:
+            r_move_range_b = 0.0 
+        try:
+            r_move_range_e = run_options['calculation']['r_move_range']['end']
+        except:
+            r_move_range_e = 0.0 
+        try:
+            r_move_range_s = run_options['calculation']['r_move_range']['step']
+        except:
+            r_move_range_s = 1.0 
+        try:
+            r_move_direction = run_options['calculation']['r_move_range']['direction']
+        except:
+            r_move_direction = 'z' 
     else:
-        r_move_range_b = 0.0 
-        r_move_range_e = 0.0 
-        r_move_range_s = 1.0 
-        r_move_direction = 'z' 
+        r_translate = False
 
     # XC parameters
-    vdW = run_options['XC']['vdW']
+    try:
+        vdW = run_options['XC']['vdW']
+    except:
+        vdW = True 
     # scf parameters
-    mgrid = run_options['scf']['mgrid']
-    eps_scf = run_options['scf']['eps_scf']
-    diagonalize = run_options['scf']['diagonalize']
+    try:
+        mgrid = run_options['scf']['mgrid']
+    except:
+        mgrid = 280 
+    try:
+        eps_scf = run_options['scf']['eps_scf']
+    except:
+        eps_scf = 1.0E-05 
+    try:
+        diagonalize = run_options['scf']['diagonalize']
+    except:
+        diagonalize = False 
     # basis set
-    if 'kind' in run_options.keys() and 'basis' in run_options['kind'].keys():
+    try: 
         basis = run_options['kind']['basis']
-    else:
+    except:
         basis = 'DZVP-MOLOPT-GTH'
 
+    ############################################################################
     root_dir = os.getcwd()
     calc = CP2K()
     calc.project_name = jobname
@@ -251,16 +306,15 @@ if __name__ == '__main__':
         l_confs = create_configurations(lattice,vector,rotation_angle)
         ######
         for key in l_confs.keys():
-            if tailored_box:
-                while not generated_electrode:
-                    electrode = generate_electrode(l_confs[key], lattice_constant=separation, z_len=z_len)
-                    cell = electrode.cell
-                    generated_electrode = True
+            while not generated_electrode:
+                electrode = generate_electrode(l_confs[key], lattice_constant=separation, x_in=x_len, y_in=y_len, z_len=z_len)
+                cell = electrode.cell
+                generated_electrode = True
             l_confs[key].set_cell(cell)
             l_confs[key].center(axis=(0,1))
-            if lshift != 0.0:
+            if l_shift != 0.0:
                 l_confs[key].center(axis=2)
-                l_confs[key].translate([0.0,0.0,lshift])
+                l_confs[key].translate([0.0,0.0,l_shift])
                 if add_electrode and too_close(l_confs[key]+electrode,1.0):
                     (l_confs[key]+electrode).write('lhs_'+key+'_positions.vasp')
                     print('LHS ions are too close to the electrode')
@@ -273,9 +327,9 @@ if __name__ == '__main__':
             r_confs[key].rotate('y',a=np.pi,center='COP')
             r_confs[key].center(axis=(0,1,2))
             r_confs[key].translate([0.0,0.0,eq_dist_ion_pair_electrode])
-            if rshift != 0.0:
+            if r_shift != 0.0:
                 r_confs[key].center(axis=2)
-                r_confs[key].translate([0.0,0.0,rshift])
+                r_confs[key].translate([0.0,0.0,r_shift])
                 if add_electrode and too_close(r_confs[key]+electrode,1.0):
                     (r_confs[key]+electrode).write('rhs_'+key+'_positions.vasp')
                     print('RHS ions are too close to the electrode')

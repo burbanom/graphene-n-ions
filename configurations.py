@@ -132,13 +132,29 @@ def create_configurations( lattice, axis,  angle ):
             sys.exit()
     return dict(zip(conf_names,les_confs))
 
-def generate_electrode(configuration, lattice_constant, z_len):
-    x_len = np.ceil((np.max(configuration.get_positions().T[0]) - np.min(configuration.get_positions().T[0])
+def generate_electrode(configuration, lattice_constant, z_len, x_in = None, y_in = None):
+
+    x_test = np.ceil((np.max(configuration.get_positions().T[0]) - np.min(configuration.get_positions().T[0])
                     + lattice_constant / 2.0 )
                     / graphene_nanoribbon(1,1,sheet=True).get_cell()[0][0])
-    y_len = np.ceil((np.max(configuration.get_positions().T[1]) - np.min(configuration.get_positions().T[1])
+    y_test = np.ceil((np.max(configuration.get_positions().T[1]) - np.min(configuration.get_positions().T[1])
                     + lattice_constant / 2.0)
                     / graphene_nanoribbon(1,1,sheet=True).get_cell()[2][2])
+
+    if x_in is not None:
+        x_in = np.ceil(x_in / graphene_nanoribbon(1,1,sheet=True).get_cell()[0][0])
+        if x_in >= x_test:
+            x_len = x_in
+    else:
+        x_len = x_test
+
+    if y_in is not None:
+        y_in = np.ceil(y_in / graphene_nanoribbon(1,1,sheet=True).get_cell()[2][2])
+        if y_in >= y_test:
+            y_len = y_in
+    else:
+        y_len = y_test
+
     sheet = graphene_nanoribbon(int(x_len),int(y_len),sheet=True)
     sheet.rotate(v='x',a=np.pi/2.)
     sheet.set_cell([sheet.cell[0][0],sheet.cell[2][2],z_len])
