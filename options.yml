@@ -11,9 +11,9 @@ calculation:
     # Perform calcs on large box (42 * 40 angstrom).
     # direction in which to apply the translation, 0 for x, 1 for y 
     # and 2 for z
-    move_direction: 2
     # Starting, end point and step of translation.
-    move_range:
+    r_move_range:
+        direction: z
         begin: 0.0
         end: 0.0
         step: 1.0

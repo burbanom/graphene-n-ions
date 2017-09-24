@@ -125,10 +125,16 @@ if __name__ == '__main__':
         l_ions = run_options['calculation']['l_ions']
     if 'r_ions' in run_options['calculation'].keys():
         r_ions = run_options['calculation']['r_ions']
-    move_range_b = run_options['calculation']['move_range']['begin']
-    move_range_e = run_options['calculation']['move_range']['end']
-    move_range_s = run_options['calculation']['move_range']['step']
-    move_direction = run_options['calculation']['move_direction']
+    if 'r_move_range' in run_options['calculation'].keys():
+        r_move_range_b = run_options['calculation']['r_move_range']['begin']
+        r_move_range_e = run_options['calculation']['r_move_range']['end']
+        r_move_range_s = run_options['calculation']['r_move_range']['step']
+        r_move_direction = run_options['calculation']['direction']
+    else:
+        r_move_range_b = 0.0 
+        r_move_range_e = 0.0 
+        r_move_range_s = 1.0 
+        r_move_direction = 'z' 
 
     # XC parameters
     vdW = run_options['XC']['vdW']
