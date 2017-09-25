@@ -10,18 +10,18 @@ calculation:
         # 3D periodic system
         periodicity: 2
         # box size along x
-        x_len: 18.00
+        x_len: 16.00
         # box size along y
-        #y_len: 22.13560932073025
+        y_len: 19.00 
         # box size along z
         z_len: 15.0
         add_electrode: True 
     # Initial shift for lhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
-    l_shift: -4.5
+    l_shift: -3.8
     # Initial shift for rhs ion from centre of the box
     # A value of 0.0 leaves the ion in it's original position
-    r_shift: 4.5
+    r_shift: 3.8
     # Number of pf6-bmim pairs on each side of the electrode
     l_pairs:
         initial_rotations:
@@ -49,7 +49,7 @@ scf:
     # MGRID cutoff
     mgrid: 250
     # scf tolerance
-    eps_scf: 1.0E-01
+    eps_scf: 1.0E-06
     # Perform diagonalization.
     diagonalize: False
 dft:

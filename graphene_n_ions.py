@@ -338,18 +338,23 @@ if __name__ == '__main__':
                     print('RHS ions are too close to the electrode')
                     sys.exit()
 
-    columns = l_confs.keys()
-    if r_pairs:
-        indices = r_confs.keys()
+    if l_pairs:
+        indices = l_confs.keys()
     else:
-        indices = ['energy']
+        indices = ['configuration']
+
+    if r_pairs:
+        columns = r_confs.keys()
+    else:
+        columns = ['energy']
+
     energies = pd.DataFrame(columns=columns,index=indices)
 
-    for  col in columns:
-        for  index in indices:
-            box = l_confs[col] 
+    for  index in indices:
+        for  col in columns:
+            box = l_confs[index] 
             if r_pairs:
-                box.extend(r_confs[index])
+                box.extend(r_confs[col])
             if add_electrode:
                 box.extend(electrode)
             FORCE_EVAL.DFT.Charge = charge
@@ -366,7 +371,7 @@ if __name__ == '__main__':
                 FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
                 box.pbc = [False,False,False]
 
-            dir_name = calc.project_name + '-L-' + str(col) + '-R-' + str(index)
+            dir_name = calc.project_name + '-L-' + str(index) + '-R-' + str(col)
             energies[col][index] = run_calc(dir_name, calc, box=box, debug=debug)  
             if add_electrode:
                 try:
