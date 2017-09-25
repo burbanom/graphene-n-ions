@@ -9,7 +9,7 @@ import ase
 import os, re, sys
 import shutil
 from yml_options import read_options
-from file_utils import return_value
+from file_utils import *
 from configurations import * 
 from copy import deepcopy
 import matplotlib
@@ -61,20 +61,21 @@ def run_calc( my_dir, calc, box, debug = False ):
     os.chdir(root_dir)
     return result 
 
-def plot_charges( x_coords, y_coords, charges, points = None):
+def plot_charges( x_coords, y_coords, charges, folder = './', points = None):
     plt.figure(figsize=(7,7))
     cm = plt.cm.get_cmap('seismic')
-    plt.scatter( x_coords, y_coords,c=charges, vmin=np.min(charges), vmax=np.max(charges), s=55, cmap=cm)
-    plt.colorbar(shrink=0.77)
+    plt.scatter( x_coords, y_coords, c=charges, vmin=np.min(charges), vmax=np.max(charges), s=55, cmap=cm)
+    plt.colorbar(shrink=1.00)
     if points is not None:
         for point in points:
             plt.scatter(point[0],point[1], marker=u'*', s=75)
-    plt.ylabel('position along $y$-axis (\AA)')
-    plt.xlabel('position along $x$-axis (\AA)')
-    plt.axes().set_aspect('equal')
-    plt.ylim([0.0,np.max(x_coords)])
-    plt.xlim([0.0,np.max(y_coords)])
-    plt.savefig('charges.pdf',dpi=1000)
+    plt.ylabel(r'position along $y$-axis ($\AA$)')
+    plt.xlabel(r'position along $x$-axis ($\AA$)')
+    #plt.axes().set_aspect('equal')
+    plt.axes().set_aspect(aspect = np.max(y_coords)/np.max(x_coords), adjustable='box', anchor = 'C')
+    plt.xlim([0.0,np.max(x_coords)])
+    plt.ylim([0.0,np.max(y_coords)])
+    plt.savefig(folder+'charges.pdf',dpi=1000)
     return
 
 if __name__ == '__main__':
@@ -202,6 +203,10 @@ if __name__ == '__main__':
         basis = run_options['kind']['basis']
     except:
         basis = 'DZVP-MOLOPT-GTH'
+    try:
+        spin_polarized = run_options['dft']['spin_polarized']
+    except:
+        spin_polarized = False
 
     ############################################################################
     root_dir = os.getcwd()
@@ -238,7 +243,7 @@ if __name__ == '__main__':
         NON_LOCAL.Kernel_file_name = 'vdW_kernel_table.dat'
         NON_LOCAL.Cutoff =  20.0 
 
-    FORCE_EVAL.DFT.Uks = True
+    FORCE_EVAL.DFT.Uks = spin_polarized
 
     KIND = SUBSYS.KIND_add("H")
     KIND.Basis_set = basis 
@@ -365,9 +370,9 @@ if __name__ == '__main__':
             energies[col][index] = run_calc(dir_name, calc, box=box, debug=debug)  
             if add_electrode:
                 try:
-                    charges = hirshfeld_charges(dir_name+'/'+calc.project_name+'.out')
-                    plot_charges( electrode.get_positions().T[0], electrode.get_positions().T[1], charges )
-                    np.savetxt(dir_name+'/'+calc.project_name+'/charges.dat',charges[:-len(electode)])
+                    charges = hirshfeld_charges(dir_name+'/'+calc.project_name+'.out')[-len(electrode):]
+                    np.savetxt(dir_name+'/'+'charges.dat',charges)
+                    plot_charges( electrode.get_positions().T[0], electrode.get_positions().T[1], charges=charges, folder=dir_name+'/' )
                 except:
                     continue
             energies.to_csv('results.csv')

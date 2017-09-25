@@ -10,7 +10,7 @@ calculation:
         # 3D periodic system
         periodicity: 2
         # box size along x
-        #x_len: 23.43
+        x_len: 18.00
         # box size along y
         #y_len: 22.13560932073025
         # box size along z
@@ -47,8 +47,10 @@ kind:
     basis: DZVP-MOLOPT-GTH
 scf:
     # MGRID cutoff
-    mgrid: 280
+    mgrid: 250
     # scf tolerance
-    eps_scf: 1.0E-05
+    eps_scf: 1.0E-01
     # Perform diagonalization.
     diagonalize: False
+dft:
+    spin_polarized: False
