@@ -13,6 +13,9 @@ def too_close( mol, cutoff):
 def build_lattice( points, motif, lattice_constant ):
     "A function for creating very simple lattices"
     motifs_list = []
+    # A lattice with one point
+    if points == 1:
+        motifs_list.append(motif)
     # A lattice with two points
     if points == 2:
         for point in range(points):
@@ -22,19 +25,6 @@ def build_lattice( points, motif, lattice_constant ):
             else:
                 this_motif.translate([lattice_constant,0.0,0.0])
                 motifs_list.append(this_motif)
-    ## A lattice with three points
-    #if points == 3:
-    #    for point in range(points):
-    #        this_motif = motif.copy()
-    #        x_shift = abs(this_motif.get_center_of_mass()[0] - np.min(this_motif.positions.T[0]))
-    #        if point == 0:
-    #            motifs_list.append(this_motif)
-    #        elif point == 1:
-    #            this_motif.translate([(lattice_constant+x_shift),0.0,0.0])
-    #            motifs_list.append(this_motif)
-    #        else:
-    #            this_motif.translate([2*(lattice_constant+x_shift),0.0,0.0])
-    #            motifs_list.append(this_motif)
     if points == 4:
         for point in range(points):
             this_motif = motif.copy()
@@ -51,28 +41,6 @@ def build_lattice( points, motif, lattice_constant ):
             elif point == 3:
                 this_motif.translate([lattice_constant+x_shift,-(lattice_constant+y_shift),0.0])
                 motifs_list.append(this_motif)
-    #if points == 6:
-    #    for point in range(points):
-    #        this_motif = motif.copy()
-    #        x_shift = abs(this_motif.get_center_of_mass()[0] - np.min(this_motif.positions.T[0]))
-    #        y_shift = abs(this_motif.get_center_of_mass()[1] - np.min(this_motif.positions.T[1]))
-    #        if point == 0:
-    #            motifs_list.append(this_motif)
-    #        elif point == 1:
-    #            this_motif.translate([(lattice_constant+x_shift),0.0,0.0])
-    #            motifs_list.append(this_motif)
-    #        elif point == 2:
-    #            this_motif.translate([2*(lattice_constant+x_shift),0.0,0.0])
-    #            motifs_list.append(this_motif)
-    #        elif point == 3:
-    #            this_motif.translate([0.0,-(lattice_constant+y_shift),0.0])
-    #            motifs_list.append(this_motif)
-    #        elif point == 4:
-    #            this_motif.translate([(lattice_constant+x_shift),-(lattice_constant+y_shift),0.0])
-    #            motifs_list.append(this_motif)
-    #        elif point == 5:
-    #            this_motif.translate([2*(lattice_constant+x_shift),-(lattice_constant+y_shift),0.0])
-    #            motifs_list.append(this_motif)
     return motifs_list
 
 def create_all_configurations( lattice, axis,  angle ):
