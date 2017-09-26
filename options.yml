@@ -6,6 +6,9 @@ calculation:
     coords_file: BMIM-PF6.xyz
     # Impose charge of 0 on the system?
     charge: 0
+    calc_modes:
+        mode: flips
+
     box:
         # 3D periodic system
         periodicity: 2

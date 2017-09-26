@@ -129,9 +129,9 @@ def generate_electrode(configuration, lattice_constant, z_len, x_in = None, y_in
     sheet.center()
     return sheet
 
-def translate_ions( molec, z_vect, direction ):
+def translate_ions( molec, shifts_list, direction ):
     my_list = []
-    for shift in z_vect:
+    for shift in shifts_list:
         dummy = molec.copy()
         if direction == 0:
             dummy.translate([float(shift),0.0,0.0])
