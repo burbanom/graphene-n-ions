@@ -7,7 +7,6 @@ from ase import Atoms
 import pandas as pd
 import ase
 import os, re, sys
-import shutil
 from yml_options import read_options
 from file_utils import *
 from configurations import * 
@@ -15,9 +14,7 @@ from copy import deepcopy
 import matplotlib
 matplotlib.use('PDF')
 import matplotlib.pyplot as plt
-#sys.path.insert(0,'../pycp2k')
-#sys.path.insert(0,'../python-utils')
-from pycp2k import CP2K
+from cp2k_calc import Cp2k_calc
 
 def parse_commandline_arguments():
     import argparse
@@ -27,39 +24,6 @@ def parse_commandline_arguments():
 
     return parser.parse_args()
 
-def run_calc( my_dir, calc, box, debug = False ):
-    # This function will run the calculation intitially using the 
-    # default FULL_KINETIC and 2PNT settings. If these fail, other
-    # linesearches are performed before changing the preconditioner.
-    # ranOK is used to break out of the loops once the calculation has
-    # finished without errors.
-    import subprocess
-    eng_string = "ENERGY| Total FORCE_EVAL"
-    if os.path.exists(my_dir):
-        shutil.rmtree(my_dir)
-    os.makedirs(my_dir)
-    os.chdir(my_dir)
-    calc.create_cell(SUBSYS,box)
-    calc.create_coord(SUBSYS,box)
-    box.write(my_dir+'.cif')
-    box.write(my_dir+'.xyz')
-    result = np.nan 
-    ranOK = False
-    try:
-        if debug:
-            calc.write_input_file()
-        else:
-            calc.run()
-            ranOK = True
-    except subprocess.CalledProcessError:
-        ranOK = False 
-    #######################################################
-    if ranOK:
-        result = return_value(calc.output_path,eng_string)
-    else:
-        result = np.nan
-    os.chdir(root_dir)
-    return result 
 
 def plot_charges( x_coords, y_coords, charges, folder = './', points = None):
     plt.figure(figsize=(7,7))
@@ -81,6 +45,7 @@ def plot_charges( x_coords, y_coords, charges, folder = './', points = None):
 if __name__ == '__main__':
 
     args = parse_commandline_arguments()
+    ncores = args.ncores
     debug = args.debug
     run_options = read_options('options.yml')
     ############################################################################
@@ -208,66 +173,6 @@ if __name__ == '__main__':
     except:
         spin_polarized = False
 
-    ############################################################################
-    root_dir = os.getcwd()
-    calc = CP2K()
-    calc.project_name = jobname
-    calc.mpi_n_processes = args.ncores
-    calc.working_directory = "./"
-    CP2K_INPUT = calc.CP2K_INPUT
-    GLOBAL = CP2K_INPUT.GLOBAL
-    FORCE_EVAL = CP2K_INPUT.FORCE_EVAL_add()
-    SUBSYS = FORCE_EVAL.SUBSYS
-    MOTION = CP2K_INPUT.MOTION
-    GLOBAL.Extended_fft_lengths = True
-
-    FORCE_EVAL.Method = 'QS'
-
-    FORCE_EVAL.DFT.Basis_set_file_name = 'BASIS_MOLOPT'
-    FORCE_EVAL.DFT.Potential_file_name = 'GTH_POTENTIALS'
-
-    FORCE_EVAL.DFT.MGRID.Cutoff = mgrid
-    FORCE_EVAL.DFT.QS.Method = 'GPW'
-    FORCE_EVAL.DFT.SCF.Scf_guess = 'ATOMIC'
-    FORCE_EVAL.DFT.SCF.Eps_scf = eps_scf 
-
-    if not vdW:
-        FORCE_EVAL.DFT.XC.XC_FUNCTIONAL.PBE.Parametrization = 'ORIG'
-    else:
-        FORCE_EVAL.DFT.XC.XC_FUNCTIONAL.PBE.Parametrization = 'revPBE'
-        FORCE_EVAL.DFT.XC.XC_FUNCTIONAL.PBE.Scale_c = 0.0
-        FORCE_EVAL.DFT.XC.XC_FUNCTIONAL.VWN.Scale_c = 1.0
-        FORCE_EVAL.DFT.XC.VDW_POTENTIAL.Dispersion_functional = 'NON_LOCAL'
-        NON_LOCAL = FORCE_EVAL.DFT.XC.VDW_POTENTIAL.NON_LOCAL_add()
-        NON_LOCAL.Type = 'DRSLL'
-        NON_LOCAL.Kernel_file_name = 'vdW_kernel_table.dat'
-        NON_LOCAL.Cutoff =  20.0 
-
-    FORCE_EVAL.DFT.Uks = spin_polarized
-
-    KIND = SUBSYS.KIND_add("H")
-    KIND.Basis_set = basis 
-    KIND.Potential = 'GTH-PBE'
-
-    KIND = SUBSYS.KIND_add("C")
-    KIND.Basis_set = basis 
-    KIND.Potential = 'GTH-PBE'
-
-    KIND = SUBSYS.KIND_add("N")
-    KIND.Basis_set = basis 
-    KIND.Potential = 'GTH-PBE'
-
-    KIND = SUBSYS.KIND_add("P")
-    KIND.Basis_set = basis 
-    KIND.Potential = 'GTH-PBE'
-
-    KIND = SUBSYS.KIND_add("F")
-    KIND.Basis_set = basis 
-    KIND.Potential = 'GTH-PBE'
-
-    GLOBAL.Run_type = 'ENERGY'
-
-
 
     bmim_pf6 = read(coords_folder+'/'+coords_file)
 
@@ -283,23 +188,6 @@ if __name__ == '__main__':
     pair.translate([0.0,0.0,-eq_dist_ion_pair_electrode])
     #eq_dist_ion_pair = linalg.norm(bmim.get_center_of_mass() - pf6.get_center_of_mass())
 
-    if diagonalize:
-        FORCE_EVAL.DFT.SCF.Max_scf = 300
-        FORCE_EVAL.DFT.SCF.DIAGONALIZATION.Algorithm = 'STANDARD'
-        FORCE_EVAL.DFT.SCF.Added_mos = [len(electrode), len(electrode)]
-        FORCE_EVAL.DFT.SCF.SMEAR.Method = 'FERMI_DIRAC'
-        FORCE_EVAL.DFT.SCF.SMEAR.Electronic_temperature = 300.0
-        FORCE_EVAL.DFT.SCF.MIXING.Method = 'BROYDEN_MIXING'
-        FORCE_EVAL.DFT.SCF.MIXING.Alpha = 0.2
-        FORCE_EVAL.DFT.SCF.MIXING.Beta = 1.5
-        FORCE_EVAL.DFT.SCF.MIXING.Nbroyden = 8
-    else:
-        FORCE_EVAL.DFT.SCF.OT.Minimizer = 'CG'
-        FORCE_EVAL.DFT.SCF.OT.Preconditioner = 'FULL_KINETIC' 
-        FORCE_EVAL.DFT.SCF.OT.Linesearch = '2PNT'  
-        FORCE_EVAL.DFT.SCF.Max_scf = 15
-        FORCE_EVAL.DFT.SCF.OUTER_SCF.Max_scf = 20
-        FORCE_EVAL.DFT.SCF.OUTER_SCF.Eps_scf = eps_scf
 
     if l_pairs >= 1:
         generated_electrode = False
@@ -350,6 +238,16 @@ if __name__ == '__main__':
 
     energies = pd.DataFrame(columns=columns,index=indices)
 
+    if add_electrode:
+        added_MOs = len(electrode)
+    else:
+        added_MOs = 20 
+
+    calc = Cp2k_calc( jobname=jobname, ncores=ncores, mgrid=mgrid, 
+            eps_scf=eps_scf, charge=charge, periodicity=periodicity, vdW=vdW, 
+            basis=basis, diagonalize=diagonalize, spin_polarized=spin_polarized, 
+            added_MOs=added_MOs, debug=debug )
+
     for  index in indices:
         for  col in columns:
             box = l_confs[index] 
@@ -357,25 +255,19 @@ if __name__ == '__main__':
                 box.extend(r_confs[col])
             if add_electrode:
                 box.extend(electrode)
-            FORCE_EVAL.DFT.Charge = charge
             if periodicity == 3:
-                FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
-                FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
                 box.pbc = [True,True,True]
             elif periodicity == 2:
-                FORCE_EVAL.DFT.POISSON.Periodic = 'XY'
-                FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
                 box.pbc = [True,True,False]
             elif periodicity == 0:
-                FORCE_EVAL.DFT.POISSON.Periodic = 'NONE'
-                FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
                 box.pbc = [False,False,False]
 
-            dir_name = calc.project_name + '-L-' + str(index) + '-R-' + str(col)
-            energies[col][index] = run_calc(dir_name, calc, box=box, debug=debug)  
+
+            dir_name = jobname + '-L-' + str(index) + '-R-' + str(col)
+            energies[col][index] = calc.run_calc(dir_name, box)  
             if add_electrode:
                 try:
-                    charges = hirshfeld_charges(dir_name+'/'+calc.project_name+'.out')[-len(electrode):]
+                    charges = hirshfeld_charges(dir_name+'/'+jobname+'.out')[-len(electrode):]
                     np.savetxt(dir_name+'/'+'charges.dat',charges)
                     plot_charges( electrode.get_positions().T[0], electrode.get_positions().T[1], charges=charges, folder=dir_name+'/' )
                 except:
