@@ -45,6 +45,7 @@ def plot_charges( x_coords, y_coords, charges, folder = './', points = None):
 if __name__ == '__main__':
 
     args = parse_commandline_arguments()
+    ncores = args.ncores
     debug = args.debug
     run_options = read_options('options.yml')
     ############################################################################
@@ -237,9 +238,16 @@ if __name__ == '__main__':
 
     energies = pd.DataFrame(columns=columns,index=indices)
 
+    if add_electrode:
+        added_MOs = len(electrode)
+    else:
+        added_MOs = 20 
 
-    calc = Cp2k_calc( jobname )
-    print(type(calc))
+    calc = Cp2k_calc( jobname=jobname, ncores=ncores, mgrid=mgrid, 
+            eps_scf=eps_scf, charge=charge, periodicity=periodicity, vdW=vdW, 
+            basis=basis, diagonalize=diagonalize, spin_polarized=spin_polarized, 
+            added_MOs=added_MOs, debug=debug )
+
     for  index in indices:
         for  col in columns:
             box = l_confs[index] 
@@ -256,7 +264,7 @@ if __name__ == '__main__':
 
 
             dir_name = jobname + '-L-' + str(index) + '-R-' + str(col)
-            energies[col][index] = calc.run_calc(dir_name, calc, box=box, debug=debug)  
+            energies[col][index] = calc.run_calc(dir_name, box)  
             if add_electrode:
                 try:
                     charges = hirshfeld_charges(dir_name+'/'+jobname+'.out')[-len(electrode):]
