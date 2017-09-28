@@ -5,6 +5,15 @@ from itertools import combinations
 from copy import deepcopy
 import sys
 
+def mol_setup( molecule, z_translation, axes, angles, cell ):
+    my_mol = deepcopy(molecule)
+    my_mol.set_cell(cell)
+    my_mol.center()
+    for axis, angle in zip( axes, angles):
+        my_mol.rotate(v=axis,a= angle * (np.pi/ 180.),center='COP')
+    my_mol.translate([0.0,0.0, z_translation])
+    return my_mol
+
 def too_close( mol, cutoff):
     # decide whether the number of atom distances below cutoff are
     # equal to the number of atoms.
@@ -94,7 +103,7 @@ def create_configurations( lattice, axis,  angle ):
         conf_names.append(''.join(name))
     for conf in les_confs: 
         if too_close(conf,1.0):
-            conf.write('conf.xyz')
+            conf.write('too_close.cif')
             print(conf.get_all_distances())
             print('Some atoms were found to be too close when building the configurations')
             sys.exit()
@@ -113,6 +122,8 @@ def generate_electrode(configuration, lattice_constant, z_len, x_in = None, y_in
         x_in = np.ceil(x_in / graphene_nanoribbon(1,1,sheet=True).get_cell()[0][0])
         if x_in >= x_test:
             x_len = x_in
+        else:
+            x_len = x_test
     else:
         x_len = x_test
 
@@ -120,6 +131,8 @@ def generate_electrode(configuration, lattice_constant, z_len, x_in = None, y_in
         y_in = np.ceil(y_in / graphene_nanoribbon(1,1,sheet=True).get_cell()[2][2])
         if y_in >= y_test:
             y_len = y_in
+        else:
+            y_len = y_test
     else:
         y_len = y_test
 
@@ -129,16 +142,24 @@ def generate_electrode(configuration, lattice_constant, z_len, x_in = None, y_in
     sheet.center()
     return sheet
 
-def translate_ions( molec, shifts_list, direction ):
+def translate_ions( lattice, shifts_list, direction ):
     my_list = []
+    my_names = []
+    molec = Atoms()
+    for point in lattice:
+        molec.extend(point)
     for shift in shifts_list:
         dummy = molec.copy()
-        if direction == 0:
+        if direction == 'x':
             dummy.translate([float(shift),0.0,0.0])
-        elif direction == 1:
+            label = 'x-'
+        elif direction == 'y':
             dummy.translate([0.0,float(shift),0.0])
-        else:
+            label = 'y-'
+        elif direction == 'z':
             dummy.translate([0.0,0.0,float(shift)])
+            label = 'z-'
         my_list.append(dummy)
-    return my_list
+        my_names.append(label+str(shift))
+    return dict(zip(my_names,my_list))
 

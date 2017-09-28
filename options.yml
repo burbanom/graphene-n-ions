@@ -7,42 +7,44 @@ calculation:
     # Impose charge of 0 on the system?
     charge: 0
     calc_modes:
-        mode: flips
-
+        #flips: # flips, single, translation, rotation
+        #    vector: x
+        #    rotation_angle: 180.0 
+        translation:
+            direction: y
+            begin: 0.0
+            end: 10.0
+            step: 1.0
     box:
         # 3D periodic system
         periodicity: 2
         # box size along x
-        x_len: 16.00
+        x_len: 25.00
         # box size along y
-        y_len: 19.00 
+        y_len: 35.00 
         # box size along z
-        z_len: 15.0
+        z_len: 16.0
         add_electrode: True 
-    # Initial shift for lhs ion from centre of the box
-    # A value of 0.0 leaves the ion in it's original position
-    l_shift: -3.8
-    # Initial shift for rhs ion from centre of the box
-    # A value of 0.0 leaves the ion in it's original position
-    r_shift: 3.8
     # Number of pf6-bmim pairs on each side of the electrode
     l_pairs:
+        # Initial shift for lhs ion from centre of the box
+        # A value of 0.0 leaves the ion in it's original position
+        initial_shift: -4.8
         initial_rotations:
             axes: []
             angles: []
         number: 1
-        separation: 7.0
-        vector: x
-        rotation_angle: 180.0 
+        pair_separation: 7.0
     r_pairs:
-        number: 0
+        number: 1
+        # Initial shift for rhs ion from centre of the box
+        # A value of 0.0 leaves the ion in it's original position
+        initial_shift: 4.8
         # Starting, end point and step of translation.
-        r_move_range:
-            direction: z
-            begin: 0.0
-            end: 0.0
-            step: 1.0
-
+        initial_rotations:
+            axes: ['y']
+            angles: [180.0]
+        pair_separation: 7.0
 XC:
     # Perform PBE-vdW DF.
     vdW: True 

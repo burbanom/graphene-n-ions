@@ -64,6 +64,33 @@ if __name__ == '__main__':
         coords_file = 'BMIM-PF6.xyz'
     #########################################################################
     try:
+        calc_mode = run_options['calculation']['calc_modes']
+        if 'flips' in run_options['calculation']['calc_modes'].keys():
+            calc_mode = 'flips'
+            try:
+                flips_vector = run_options['calculation']['calc_modes']['flips']['vector']
+                flips_rotation_angle = run_options['calculation']['calc_modes']['flips']['rotation_angle']
+            except:
+                flips_vector = x 
+                flips_rotation_angle = 180.0
+        elif 'translation' in run_options['calculation']['calc_modes'].keys():
+            calc_mode = 'translation'
+            try:
+                trans_direct = run_options['calculation']['calc_modes']['translation']['direction']
+                trans_begin = run_options['calculation']['calc_modes']['translation']['begin']
+                trans_end = run_options['calculation']['calc_modes']['translation']['end']
+                trans_step = run_options['calculation']['calc_modes']['translation']['step']
+            except:
+                trans_direct = 'z' 
+                trans_begin = 0.0 
+                trans_end = 10.0 
+                trans_step = 1.0 
+        else:
+            calc_mode = 'single'
+    except:
+        calc_mode = 'single'
+    #########################################################################
+    try:
         periodicity = run_options['calculation']['box']['periodicity']
     except:
         periodicity = 2
@@ -89,61 +116,58 @@ if __name__ == '__main__':
     except:
         charge = 0
     try:
-        l_shift = run_options['calculation']['l_shift']
-    except:
-        l_shift = 0.0
-    try:
         r_shift = run_options['calculation']['r_shift']
     except:
         r_shift = 0.0
-    if 'r_rotate' in run_options['calculation'].keys():
-        degrees = run_options['calculation']['r_rotate']['degrees']
-        axis = run_options['calculation']['r_rotate']['axis']
     else:
         degrees = 0.0
+    #########################################################################
     if 'l_pairs' in run_options['calculation'].keys():
         l_pairs = run_options['calculation']['l_pairs']['number']
-        separation = run_options['calculation']['l_pairs']['separation']
-        vector = run_options['calculation']['l_pairs']['vector']
-        rotation_angle = run_options['calculation']['l_pairs']['rotation_angle']
+
         try:
-            initial_rot_axes = run_options['calculation']['l_pairs']['initial_rotations']['axes']
-            initial_rot_angles = run_options['calculation']['l_pairs']['initial_rotations']['angles']
+            l_shift = run_options['calculation']['l_pairs']['initial_shift']
         except:
-            initial_rot_axes = []
-            initial_rot_angles = [] 
+            l_shift = 0.0
+
+        if l_pairs >= 1:
+            l_pair_separation = run_options['calculation']['l_pairs']['pair_separation']
+        else:
+            l_pair_separation = 0
+
+        try:
+            l_init_rot_axes = run_options['calculation']['l_pairs']['initial_rotations']['axes']
+            l_init_rot_angles = run_options['calculation']['l_pairs']['initial_rotations']['angles']
+        except:
+            l_init_rot_axes = []
+            l_init_rot_angles = [] 
     else:
         l_pairs = 0
-        separation = 0. 
-        vector = None
-        rotation_angle = 0.0
+        l_pair_separation = 0. 
 
-    try:
+    #########################################################################
+    if 'r_pairs' in run_options['calculation'].keys():
         r_pairs = run_options['calculation']['r_pairs']['number']
-    except:
-        r_pairs = 0 
 
-    if r_pairs:
-        if 'r_move_range' in run_options['calculation']['r_pairs'].keys():
-            r_translate = True
-            try:
-                r_move_range_b = run_options['calculation']['r_pairs']['r_move_range']['begin']
-            except:
-                r_move_range_b = 0.0 
-            try:
-                r_move_range_e = run_options['calculation']['r_pairs']['r_move_range']['end']
-            except:
-                r_move_range_e = 0.0 
-            try:
-                r_move_range_s = run_options['calculation']['r_pairs']['r_move_range']['step']
-            except:
-                r_move_range_s = 1.0 
-            try:
-                r_move_direction = run_options['calculation']['r_pairs']['r_move_range']['direction']
-            except:
-                r_move_direction = 'z' 
+        try:
+            r_shift = run_options['calculation']['r_pairs']['initial_shift']
+        except:
+            r_shift = 0.0
+
+        if r_pairs >= 1:
+            r_pair_separation = run_options['calculation']['r_pairs']['pair_separation']
         else:
-            r_translate = False
+            r_pair_separation = 0
+
+        try:
+            r_init_rot_axes = run_options['calculation']['r_pairs']['initial_rotations']['axes']
+            r_init_rot_angles = run_options['calculation']['r_pairs']['initial_rotations']['angles']
+        except:
+            r_init_rot_axes = []
+            r_init_rot_angles = [] 
+    else:
+        r_pairs = 0
+        r_pair_separation = 0. 
 
     # XC parameters
     try:
@@ -173,58 +197,74 @@ if __name__ == '__main__':
     except:
         spin_polarized = False
 
-
     bmim_pf6 = read(coords_folder+'/'+coords_file)
 
     pf6 = bmim_pf6[0:7]; bmim = bmim_pf6[7:32]; electrode = bmim_pf6[32:]
     pair = pf6+bmim
 
-    for axis, angle in zip(initial_rot_axes,initial_rot_angles):
-        pair.rotate(v=axis,a= angle * (np.pi/ 180.),center='COP')
-
     eq_dist_ion_pair_electrode = abs(electrode.get_center_of_mass()-pair.get_center_of_mass())[2]
     electrode.center()
-    pair.center()
-    pair.translate([0.0,0.0,-eq_dist_ion_pair_electrode])
-    #eq_dist_ion_pair = linalg.norm(bmim.get_center_of_mass() - pf6.get_center_of_mass())
+    eq_dist_ion_pair = linalg.norm(bmim.get_center_of_mass() - pf6.get_center_of_mass())
 
+    electrode = generate_electrode(pair, lattice_constant=l_pairs*l_pair_separation, z_len=z_len, x_in=x_len, y_in=y_len)
+    cell = electrode.cell
 
     if l_pairs >= 1:
-        generated_electrode = False
-        cell = bmim_pf6.cell
-        lattice = build_lattice(l_pairs, motif=pair,lattice_constant=separation)
-        l_confs = create_configurations(lattice,vector,rotation_angle)
-        ######
-        for key in l_confs.keys():
-            while not generated_electrode:
-                electrode = generate_electrode(l_confs[key], lattice_constant=separation, x_in=x_len, y_in=y_len, z_len=z_len)
-                cell = electrode.cell
-                generated_electrode = True
-            l_confs[key].set_cell(cell)
-            l_confs[key].center(axis=(0,1))
-            if l_shift != 0.0:
-                l_confs[key].center(axis=2)
-                l_confs[key].translate([0.0,0.0,l_shift])
-                if add_electrode and too_close(l_confs[key]+electrode,1.0):
-                    (l_confs[key]+electrode).write('lhs_'+key+'_positions.vasp')
-                    print('LHS ions are too close to the electrode')
-                    sys.exit()
+        l_pair = mol_setup(pair,-eq_dist_ion_pair_electrode,l_init_rot_axes,l_init_rot_angles,cell=cell)
+        l_lattice = build_lattice(l_pairs, motif=l_pair,lattice_constant=l_pair_separation)
 
     if r_pairs >=1:
-        lattice = build_lattice(r_pairs, motif=pair,lattice_constant=separation)
-        r_confs = create_configurations(lattice,vector,rotation_angle)
-        for key in r_confs.keys():
-            r_confs[key].set_cell(cell)
-            r_confs[key].rotate('y',a=np.pi,center='COP')
-            r_confs[key].center(axis=(0,1,2))
-            r_confs[key].translate([0.0,0.0,eq_dist_ion_pair_electrode])
-            if r_shift != 0.0:
-                r_confs[key].center(axis=2)
-                r_confs[key].translate([0.0,0.0,r_shift])
-                if add_electrode and too_close(r_confs[key]+electrode,1.0):
-                    (r_confs[key]+electrode).write('rhs_'+key+'_positions.vasp')
-                    print('RHS ions are too close to the electrode')
-                    sys.exit()
+        r_pair = mol_setup(pair,eq_dist_ion_pair_electrode,r_init_rot_axes,r_init_rot_angles,cell=cell)
+        r_lattice = build_lattice(r_pairs, motif=r_pair,lattice_constant=r_pair_separation)
+
+    if calc_mode == 'flips':
+
+        if l_pairs: 
+            l_confs = create_configurations(l_lattice,flips_vector,flips_rotation_angle)
+            #####
+            for key in l_confs.keys():
+               cell = electrode.cell
+               l_confs[key].set_cell(cell)
+               l_confs[key].center(axis=(0,1))
+               if l_shift != 0.0:
+                   l_confs[key].center(axis=2)
+                   l_confs[key].translate([0.0,0.0,l_shift])
+
+        if r_pairs: 
+            r_confs = create_configurations(r_lattice,flips_vector,flips_rotation_angle)
+
+            for key in r_confs.keys():
+               r_confs[key].set_cell(cell)
+               r_confs[key].center(axis=(0,1))
+               if r_shift != 0.0:
+                   r_confs[key].center(axis=2)
+                   r_confs[key].translate([0.0,0.0,r_shift])
+
+    elif calc_mode == 'translation':
+
+        if l_pairs: 
+            translate_range = np.arange(trans_begin,trans_end+trans_step,trans_step)
+            l_confs = translate_ions(l_lattice,translate_range,trans_direct)
+            #####
+            for key in l_confs.keys():
+               cell = electrode.cell
+               l_confs[key].set_cell(cell)
+               #l_confs[key].center(axis=(0,1))
+               if l_shift != 0.0:
+                   l_confs[key].center(axis=2)
+                   l_confs[key].translate([0.0,0.0,l_shift])
+
+        if r_pairs: 
+            r_confs = create_configurations(r_lattice,'z',180.0)
+
+            for key in r_confs.keys():
+               r_confs[key].set_cell(cell)
+               r_confs[key].center(axis=(0,1))
+               if r_shift != 0.0:
+                   r_confs[key].center(axis=2)
+                   r_confs[key].translate([0.0,0.0,r_shift])
+
+
 
     if l_pairs:
         indices = l_confs.keys()
@@ -250,17 +290,23 @@ if __name__ == '__main__':
 
     for  index in indices:
         for  col in columns:
-            box = l_confs[index] 
+
+            box = Atoms()
+            box.set_cell(cell)
+
+            if l_pairs:
+                box.extend(l_confs[index])
+
             if r_pairs:
                 box.extend(r_confs[col])
+
             if add_electrode:
                 box.extend(electrode)
-            if periodicity == 3:
-                box.pbc = [True,True,True]
-            elif periodicity == 2:
-                box.pbc = [True,True,False]
-            elif periodicity == 0:
-                box.pbc = [False,False,False]
+
+            if too_close(box,1.0):
+                box.write('box.cif')
+                print('Some atoms are too close')
+                sys.exit()
 
 
             dir_name = jobname + '-L-' + str(index) + '-R-' + str(col)

@@ -21,6 +21,7 @@ class Cp2k_calc:
         self.calc.project_name = jobname
         self.calc.mpi_n_processes = ncores
         self.calc.working_directory = "./"
+        self.periodicity = periodicity
         self.debug = debug
         ############################################################################
 
@@ -122,6 +123,14 @@ class Cp2k_calc:
         os.chdir(my_dir)
         self.calc.create_cell(self.SUBSYS,box)
         self.calc.create_coord(self.SUBSYS,box)
+
+        if self.periodicity == 3:
+            box.pbc = [True,True,True]
+        elif self.periodicity == 2:
+            box.pbc = [True,True,False]
+        elif self.periodicity == 0:
+            box.pbc = [False,False,False]
+
         box.write(my_dir+'.cif')
         box.write(my_dir+'.xyz')
         result = np.nan 
