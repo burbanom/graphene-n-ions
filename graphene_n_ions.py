@@ -40,6 +40,7 @@ def plot_charges( x_coords, y_coords, charges, folder = './', points = None):
     plt.xlim([0.0,np.max(x_coords)])
     plt.ylim([0.0,np.max(y_coords)])
     plt.savefig(folder+'charges.pdf',dpi=1000)
+    plt.close()
     return
 
 if __name__ == '__main__':

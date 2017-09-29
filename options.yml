@@ -19,9 +19,9 @@ calculation:
         # 3D periodic system
         periodicity: 2
         # box size along x
-        x_len: 25.00
+        x_len: 15.00
         # box size along y
-        y_len: 35.00 
+        y_len: 24.00 
         # box size along z
         z_len: 18.0
         add_electrode: True 
