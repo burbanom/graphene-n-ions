@@ -10,7 +10,7 @@ def mol_setup( molecule, z_translation, axes, angles, cell ):
     my_mol.set_cell(cell)
     my_mol.center()
     for axis, angle in zip( axes, angles):
-        my_mol.rotate(v=axis,a= angle * (np.pi/ 180.),center='COP')
+        my_mol.rotate(a= angle,v=axis,center='COP')
     my_mol.translate([0.0,0.0, z_translation])
     return my_mol
 
@@ -67,7 +67,7 @@ def create_all_configurations( lattice, axis,  angle ):
             lattice_copy = deepcopy(lattice)
             conf = Atoms()
             for index in subset:
-                lattice_copy[index-1].rotate(v=axis,a=angle * (np.pi/180.), center='COP')
+                lattice_copy[index-1].rotate(a=angle ,v=axis, center='COP')
                 name[index] = 'C'
             for item in lattice_copy:
                 conf.extend(item)
@@ -94,7 +94,7 @@ def create_configurations( lattice, axis,  angle ):
         name = len(lattice) * ['A']
         lattice_copy = deepcopy(lattice)
         for index in range(i,len(lattice),2):
-            lattice_copy[index].rotate(v=axis,a=angle * (np.pi/180.), center='COP')
+            lattice_copy[index].rotate(a=angle , v=axis,center='COP')
             name[index] = 'C'
         conf = Atoms()
         for item in lattice_copy:
@@ -137,7 +137,7 @@ def generate_electrode(configuration, lattice_constant, z_len, x_in = None, y_in
         y_len = y_test
 
     sheet = graphene_nanoribbon(int(x_len),int(y_len),sheet=True)
-    sheet.rotate(v='x',a=np.pi/2.)
+    sheet.rotate(a=90.0, v='x')
     sheet.set_cell([sheet.cell[0][0],sheet.cell[2][2],z_len])
     sheet.center()
     return sheet

@@ -8,6 +8,37 @@ from pycp2k import CP2K
 from file_utils import *
 import shutil
 import subprocess
+from collections import OrderedDict
+
+def return_value(filename,pattern,val_posn = -1):
+    value = np.nan
+    if type(pattern) is str:
+        pattern = pattern.encode()
+    with open(filename, "r") as fin:
+        # memory-map the file, size 0 means whole file
+        m = mmap.mmap(fin.fileno(), 0, prot=mmap.PROT_READ)
+        #                             prot argument is *nix only
+        i = m.rfind(pattern)
+        try:
+            m.seek(i)             # seek to the location
+        except ValueError:
+            return value
+        line = m.readline()   # read to the end of the line
+        value = float(line.split()[val_posn])
+    return value 
+
+def hirshfeld_charges( infile, uks = False ):
+    if uks:
+        header = r'\#Atom  Element  Kind  Ref Charge     Population       Spin moment  Net charge'
+        startat = 7
+    else:
+        header = r'\#Atom  Element  Kind  Ref Charge     Population                    Net charge'
+        startat = 5
+    footer = r'Total Charge'
+    f = open(infile,'r')
+    data = f.read()
+    x = re.findall(header+'(.*?)'+footer,data,re.DOTALL)[0].split()
+    return np.array(x[startat::startat+1],dtype=np.float64)
 
 class Cp2k_calc:
 
@@ -22,6 +53,7 @@ class Cp2k_calc:
         self.calc.mpi_n_processes = ncores
         self.calc.working_directory = "./"
         self.periodicity = periodicity
+        self.basis = basis
         self.debug = debug
         ############################################################################
 
@@ -68,26 +100,6 @@ class Cp2k_calc:
 
         FORCE_EVAL.DFT.Uks = spin_polarized
 
-        KIND = self.SUBSYS.KIND_add("H")
-        KIND.Basis_set = basis 
-        KIND.Potential = 'GTH-PBE'
-
-        KIND = self.SUBSYS.KIND_add("C")
-        KIND.Basis_set = basis 
-        KIND.Potential = 'GTH-PBE'
-
-        KIND = self.SUBSYS.KIND_add("N")
-        KIND.Basis_set = basis 
-        KIND.Potential = 'GTH-PBE'
-
-        KIND = self.SUBSYS.KIND_add("P")
-        KIND.Basis_set = basis 
-        KIND.Potential = 'GTH-PBE'
-
-        KIND = self.SUBSYS.KIND_add("F")
-        KIND.Basis_set = basis 
-        KIND.Potential = 'GTH-PBE'
-
         GLOBAL.Run_type = 'ENERGY'
 
         if diagonalize:
@@ -116,23 +128,31 @@ class Cp2k_calc:
         # linesearches are performed before changing the preconditioner.
         # ranOK is used to break out of the loops once the calculation has
         # finished without errors.
+        self.my_dir = my_dir
+        self.box = box
         eng_string = "ENERGY| Total FORCE_EVAL"
-        if os.path.exists(my_dir):
-            shutil.rmtree(my_dir)
-        os.makedirs(my_dir)
-        os.chdir(my_dir)
-        self.calc.create_cell(self.SUBSYS,box)
-        self.calc.create_coord(self.SUBSYS,box)
+        if os.path.exists(self.my_dir):
+            shutil.rmtree(self.my_dir)
+        os.makedirs(self.my_dir)
+        os.chdir(self.my_dir)
+        self.calc.create_cell(self.SUBSYS,self.box)
+        self.calc.create_coord(self.SUBSYS,self.box)
+
+
+        for kind in list(dict.fromkeys(box.get_chemical_symbols())):
+            KIND = self.SUBSYS.KIND_add(kind)
+            KIND.Basis_set = self.basis 
+            KIND.Potential = 'GTH-PBE'
 
         if self.periodicity == 3:
-            box.pbc = [True,True,True]
+            self.box.pbc = [True,True,True]
         elif self.periodicity == 2:
-            box.pbc = [True,True,False]
+            self.box.pbc = [True,True,False]
         elif self.periodicity == 0:
-            box.pbc = [False,False,False]
+            self.box.pbc = [False,False,False]
 
-        box.write(my_dir+'.cif')
-        box.write(my_dir+'.xyz')
+        self.box.write(self.my_dir+'.cif')
+        self.box.write(self.my_dir+'.xyz')
         result = np.nan 
         ranOK = False
         try:
@@ -151,3 +171,5 @@ class Cp2k_calc:
         os.chdir(self.root_dir)
         return result 
 
+    def get_charges( self, how_many = 0 ):
+        return hirshfeld_charges(self.my_dir+'/'+jobname+'.out')[how_many:]

@@ -23,13 +23,13 @@ calculation:
         # box size along y
         y_len: 35.00 
         # box size along z
-        z_len: 16.0
+        z_len: 18.0
         add_electrode: True 
     # Number of pf6-bmim pairs on each side of the electrode
     l_pairs:
         # Initial shift for lhs ion from centre of the box
         # A value of 0.0 leaves the ion in it's original position
-        initial_shift: -4.8
+        initial_shift: -3.8
         initial_rotations:
             axes: []
             angles: []
@@ -39,7 +39,7 @@ calculation:
         number: 1
         # Initial shift for rhs ion from centre of the box
         # A value of 0.0 leaves the ion in it's original position
-        initial_shift: 4.8
+        initial_shift: 3.8
         # Starting, end point and step of translation.
         initial_rotations:
             axes: ['y']
@@ -49,10 +49,10 @@ XC:
     # Perform PBE-vdW DF.
     vdW: True 
 kind:
-    basis: DZVP-MOLOPT-GTH
+    basis: TZVP-MOLOPT-GTH
 scf:
     # MGRID cutoff
-    mgrid: 250
+    mgrid: 320
     # scf tolerance
     eps_scf: 1.0E-06
     # Perform diagonalization.

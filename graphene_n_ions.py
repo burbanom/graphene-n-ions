@@ -283,13 +283,13 @@ if __name__ == '__main__':
     else:
         added_MOs = 20 
 
-    calc = Cp2k_calc( jobname=jobname, ncores=ncores, mgrid=mgrid, 
-            eps_scf=eps_scf, charge=charge, periodicity=periodicity, vdW=vdW, 
-            basis=basis, diagonalize=diagonalize, spin_polarized=spin_polarized, 
-            added_MOs=added_MOs, debug=debug )
-
     for  index in indices:
         for  col in columns:
+
+            calc = Cp2k_calc( jobname=jobname, ncores=ncores, mgrid=mgrid, 
+                    eps_scf=eps_scf, charge=charge, periodicity=periodicity, vdW=vdW, 
+                    basis=basis, diagonalize=diagonalize, spin_polarized=spin_polarized, 
+                    added_MOs=added_MOs, debug=debug )
 
             box = Atoms()
             box.set_cell(cell)
@@ -313,7 +313,8 @@ if __name__ == '__main__':
             energies[col][index] = calc.run_calc(dir_name, box)  
             if add_electrode:
                 try:
-                    charges = hirshfeld_charges(dir_name+'/'+jobname+'.out')[-len(electrode):]
+                    charges = calc.get_charges( -len(electrode) )
+                    #charges = hirshfeld_charges(dir_name+'/'+jobname+'.out')[-len(electrode):]
                     np.savetxt(dir_name+'/'+'charges.dat',charges)
                     plot_charges( electrode.get_positions().T[0], electrode.get_positions().T[1], charges=charges, folder=dir_name+'/' )
                 except:
