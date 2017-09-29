@@ -103,7 +103,7 @@ class Cp2k_calc:
         GLOBAL.Run_type = 'ENERGY'
 
         if diagonalize:
-            FORCE_EVAL.DFT.SCF.Max_scf = 300
+            FORCE_EVAL.DFT.SCF.Max_scf = 600
             FORCE_EVAL.DFT.SCF.DIAGONALIZATION.Algorithm = 'STANDARD'
             FORCE_EVAL.DFT.SCF.Added_mos = [added_MOs, added_MOs]
             FORCE_EVAL.DFT.SCF.SMEAR.Method = 'FERMI_DIRAC'
@@ -116,8 +116,8 @@ class Cp2k_calc:
             FORCE_EVAL.DFT.SCF.OT.Minimizer = 'CG'
             FORCE_EVAL.DFT.SCF.OT.Preconditioner = 'FULL_KINETIC' 
             FORCE_EVAL.DFT.SCF.OT.Linesearch = '2PNT'  
-            FORCE_EVAL.DFT.SCF.Max_scf = 15
-            FORCE_EVAL.DFT.SCF.OUTER_SCF.Max_scf = 20
+            FORCE_EVAL.DFT.SCF.Max_scf = 20
+            FORCE_EVAL.DFT.SCF.OUTER_SCF.Max_scf = 50
             FORCE_EVAL.DFT.SCF.OUTER_SCF.Eps_scf = eps_scf
 
         return
@@ -172,4 +172,11 @@ class Cp2k_calc:
         return result 
 
     def get_charges( self, how_many = 0 ):
-        return hirshfeld_charges(self.my_dir+'/'+jobname+'.out')[how_many:]
+        os.chdir(self.my_dir)
+        try:
+            charges = hirshfeld_charges(self.calc.output_path)[how_many:]
+        except:
+            charges = np.zeros(abs(how_many))
+            print('Unable to get charges')
+        os.chdir(self.root_dir)
+        return charges 

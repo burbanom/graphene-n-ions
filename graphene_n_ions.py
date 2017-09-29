@@ -221,7 +221,6 @@ if __name__ == '__main__':
 
         if l_pairs: 
             l_confs = create_configurations(l_lattice,flips_vector,flips_rotation_angle)
-            #####
             for key in l_confs.keys():
                cell = electrode.cell
                l_confs[key].set_cell(cell)
@@ -245,11 +244,9 @@ if __name__ == '__main__':
         if l_pairs: 
             translate_range = np.arange(trans_begin,trans_end+trans_step,trans_step)
             l_confs = translate_ions(l_lattice,translate_range,trans_direct)
-            #####
             for key in l_confs.keys():
                cell = electrode.cell
                l_confs[key].set_cell(cell)
-               #l_confs[key].center(axis=(0,1))
                if l_shift != 0.0:
                    l_confs[key].center(axis=2)
                    l_confs[key].translate([0.0,0.0,l_shift])
@@ -314,7 +311,6 @@ if __name__ == '__main__':
             if add_electrode:
                 try:
                     charges = calc.get_charges( -len(electrode) )
-                    #charges = hirshfeld_charges(dir_name+'/'+jobname+'.out')[-len(electrode):]
                     np.savetxt(dir_name+'/'+'charges.dat',charges)
                     plot_charges( electrode.get_positions().T[0], electrode.get_positions().T[1], charges=charges, folder=dir_name+'/' )
                 except:
