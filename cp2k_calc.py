@@ -76,13 +76,13 @@ class Cp2k_calc:
 
         FORCE_EVAL.DFT.Charge = charge
 
-        if periodicity == 3:
+        if self.periodicity == 3:
             FORCE_EVAL.DFT.POISSON.Periodic = 'XYZ'
             FORCE_EVAL.DFT.POISSON.Poisson_solver = 'PERIODIC'
-        elif periodicity == 2:
+        elif self.periodicity == 2:
             FORCE_EVAL.DFT.POISSON.Periodic = 'XY'
             FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
-        elif periodicity == 0:
+        elif self.periodicity == 0:
             FORCE_EVAL.DFT.POISSON.Periodic = 'NONE'
             FORCE_EVAL.DFT.POISSON.Poisson_solver = 'ANALYTIC'
 
@@ -135,8 +135,6 @@ class Cp2k_calc:
             shutil.rmtree(self.my_dir)
         os.makedirs(self.my_dir)
         os.chdir(self.my_dir)
-        self.calc.create_cell(self.SUBSYS,self.box)
-        self.calc.create_coord(self.SUBSYS,self.box)
 
 
         for kind in list(dict.fromkeys(box.get_chemical_symbols())):
@@ -145,16 +143,20 @@ class Cp2k_calc:
             KIND.Potential = 'GTH-PBE'
 
         if self.periodicity == 3:
-            self.box.pbc = [True,True,True]
+            self.box.set_pbc((True,True,True))
         elif self.periodicity == 2:
-            self.box.pbc = [True,True,False]
+            self.box.set_pbc((True,True,False))
         elif self.periodicity == 0:
-            self.box.pbc = [False,False,False]
+            self.box.set_pbc((False,False,False))
 
         self.box.write(self.my_dir+'.cif')
         self.box.write(self.my_dir+'.xyz')
         result = np.nan 
         ranOK = False
+
+        self.calc.create_cell(self.SUBSYS,self.box)
+        self.calc.create_coord(self.SUBSYS,self.box)
+
         try:
             if self.debug:
                 self.calc.write_input_file()
