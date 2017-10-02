@@ -8,6 +8,7 @@ from pycp2k import CP2K
 from file_utils import *
 import shutil
 import subprocess
+import re
 from collections import OrderedDict
 
 def return_value(filename,pattern,val_posn = -1):
