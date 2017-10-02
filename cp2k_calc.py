@@ -73,6 +73,8 @@ class Cp2k_calc:
         FORCE_EVAL.DFT.QS.Method = 'GPW'
         FORCE_EVAL.DFT.SCF.Scf_guess = 'ATOMIC'
         FORCE_EVAL.DFT.SCF.Eps_scf = eps_scf 
+        # Changing number of wfn copies that are written
+        FORCE_EVAL.DFT.SCF.PRINT.RESTART.Backup_copies = 0
 
         FORCE_EVAL.DFT.Charge = charge
 

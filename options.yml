@@ -2,7 +2,7 @@
 calculation:
     jobname: eng
     # xyz files location
-    coords_folder: /local/home/mburbano/Dropbox/Work/Source/graphene-n-ions
+    coords_folder: ./ 
     coords_file: BMIM-PF6.xyz
     # Impose charge of 0 on the system?
     charge: 0
@@ -21,9 +21,9 @@ calculation:
         # box size along x
         x_len: 15.00
         # box size along y
-        y_len: 24.00 
+        y_len: 30.00 
         # box size along z
-        z_len: 18.0
+        z_len: 20.0
         add_electrode: True 
     # Number of pf6-bmim pairs on each side of the electrode
     l_pairs:
