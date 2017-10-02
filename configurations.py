@@ -151,15 +151,20 @@ def translate_ions( lattice, shifts_list, direction ):
     for shift in shifts_list:
         dummy = molec.copy()
         if direction == 'x':
-            dummy.translate([float(shift),0.0,0.0])
+            dummy.translate((float(shift),0.0,0.0))
             label = 'x-'
         elif direction == 'y':
-            dummy.translate([0.0,float(shift),0.0])
+            dummy.translate((0.0,float(shift),0.0))
             label = 'y-'
         elif direction == 'z':
-            dummy.translate([0.0,0.0,float(shift)])
+            dummy.translate((0.0,0.0,float(shift)))
             label = 'z-'
+        else:
+            print('ERROR: Translate directions can be x, y or z only.')
+            sys.exit()
+
         my_list.append(dummy)
         my_names.append(label+str(shift))
+
     return dict(zip(my_names,my_list))
 
