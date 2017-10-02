@@ -150,6 +150,7 @@ def translate_ions( lattice, shifts_list, direction ):
         molec.extend(point)
     for shift in shifts_list:
         dummy = molec.copy()
+
         if direction == 'x':
             dummy.translate((float(shift),0.0,0.0))
             label = 'x-'

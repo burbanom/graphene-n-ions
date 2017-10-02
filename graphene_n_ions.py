@@ -250,7 +250,10 @@ if __name__ == '__main__':
                l_confs[key].set_cell(cell)
                if l_shift != 0.0:
                    l_confs[key].center(axis=2)
-                   l_confs[key].translate([0.0,0.0,l_shift])
+                   if trans_direct != 'z':
+                       l_confs[key].translate([0.0,0.0,l_shift])
+                   else:
+                       l_confs[key].translate([0.0,0.0,l_shift-float(key.split('-')[-1])])
 
         if r_pairs: 
             r_confs = create_configurations(r_lattice,'z',180.0)
