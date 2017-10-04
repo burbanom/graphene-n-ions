@@ -166,6 +166,13 @@ if __name__ == '__main__':
         except:
             r_init_rot_axes = []
             r_init_rot_angles = [] 
+
+        try:
+            r_orientation_axis = run_options['calculation']['r_pairs']['orientation_axis']
+            r_orientation_angle = run_options['calculation']['r_pairs']['orientation_angle']
+        except:
+            r_orientation_axis = 'x' 
+            r_orientation_angle = 0.0
     else:
         r_pairs = 0
         r_pair_separation = 0. 
@@ -256,7 +263,7 @@ if __name__ == '__main__':
                        l_confs[key].translate([0.0,0.0,l_shift-float(key.split('-')[-1])])
 
         if r_pairs: 
-            r_confs = create_configurations(r_lattice,'z',180.0)
+            r_confs = create_configurations(r_lattice,r_orientation_axis,r_orientation_angle)
 
             for key in r_confs.keys():
                r_confs[key].set_cell(cell)
@@ -306,6 +313,7 @@ if __name__ == '__main__':
 
             if too_close(box,1.0):
                 box.write('box.cif')
+                box.write('box.xyz')
                 print('Some atoms are too close')
                 sys.exit()
 

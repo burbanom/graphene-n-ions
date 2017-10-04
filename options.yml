@@ -11,7 +11,7 @@ calculation:
         #    vector: x
         #    rotation_angle: 180.0 
         translation:
-            direction: y
+            direction: z
             begin: 0.0
             end: 10.0
             step: 1.0
@@ -19,32 +19,34 @@ calculation:
         # 3D periodic system
         periodicity: 2
         # box size along x
-        x_len: 15.00
+        x_len: 20.00
         # box size along y
-        y_len: 30.00 
+        y_len: 20.00 
         # box size along z
-        z_len: 20.0
+        z_len: 50.0
         add_electrode: True 
     # Number of pf6-bmim pairs on each side of the electrode
     l_pairs:
         # Initial shift for lhs ion from centre of the box
         # A value of 0.0 leaves the ion in it's original position
-        initial_shift: -3.8
+        initial_shift: -8.0
         initial_rotations:
-            axes: []
-            angles: []
+            axes: ['x']
+            angles: [90.0]
         number: 1
         pair_separation: 7.0
     r_pairs:
         number: 1
         # Initial shift for rhs ion from centre of the box
         # A value of 0.0 leaves the ion in it's original position
-        initial_shift: 3.8
+        initial_shift: 8.0
         # Starting, end point and step of translation.
         initial_rotations:
-            axes: ['y']
-            angles: [180.0]
+            axes: ['x', 'y']
+            angles: [90.0, 180.0]
         pair_separation: 7.0
+        orientation_axis: x 
+        orientation_angle: 180.0
 XC:
     # Perform PBE-vdW DF.
     vdW: True 
