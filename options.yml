@@ -32,7 +32,7 @@ calculation:
         initial_shift: -8.0
         initial_rotations:
             axes: ['x']
-            angles: [90.0]
+            angles: [-90.0]
         number: 1
         pair_separation: 7.0
     r_pairs:
